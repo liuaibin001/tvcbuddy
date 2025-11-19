@@ -31,12 +31,20 @@
 		}
 	},
 	"bundle": {
-		"createUpdaterArtifacts": false,
+		"createUpdaterArtifacts": true,
 		"active": true,
 		"targets": "all",
 		"icon": [
 			"icons/icon.icns",
 			"icons/icon.ico"
 		]
+	},
+	"plugins": {
+		"updater": {
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGRjE1QjZCQkZGNEFFNzcKUldSM3J2Uy9hMXZ4NytKYWZYVHNrMWx2Ly8rZDkzL0FGTW95MEdoVm5oWjZ5TFd4WjBuMHVtdWoK",
+			"endpoints": [
+				"https://github.com/liuaibin001/tvcbuddy/releases/latest/download/latest.json"
+			]
+		}
 	}
 }
