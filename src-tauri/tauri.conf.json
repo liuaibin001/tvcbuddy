@@ -1,0 +1,42 @@
+{
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "TVCBuddy",
+	"version": "0.3.4",
+	"identifier": "com.tvcbuddy.app",
+	"build": {
+		"beforeDevCommand": "pnpm dev",
+		"devUrl": "http://localhost:1420",
+		"beforeBuildCommand": "pnpm build",
+		"frontendDist": "../dist"
+	},
+	"app": {
+		"macOSPrivateApi": true,
+		"windows": [
+			{
+				"title": "TVCBuddy",
+				"width": 1170,
+				"height": 660,
+				"minWidth": 1000,
+				"minHeight": 660,
+				"decorations": false,
+				"titleBarStyle": "Overlay",
+				"hiddenTitle": true
+			}
+		],
+		"security": {
+			"csp": null,
+			"capabilities": [
+				"default"
+			]
+		}
+	},
+	"bundle": {
+		"createUpdaterArtifacts": false,
+		"active": true,
+		"targets": "all",
+		"icon": [
+			"icons/icon.icns",
+			"icons/icon.ico"
+		]
+	}
+}

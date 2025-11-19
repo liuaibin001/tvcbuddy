@@ -1,0 +1,53 @@
+# GitLab CI/CD 简化配置 - 仅 Windows 构建
+# 如果只需要 Windows 平台，使用这个配置
+
+stages:
+  - build
+
+variables:
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+
+build:windows:
+  stage: build
+  tags:
+    - windows  # 确保你的 GitLab Runner 有 windows 标签
+  before_script:
+    # 检查并安装 Node.js
+    - |
+      if (!(Get-Command node -ErrorAction SilentlyContinue)) {
+        choco install nodejs -y --version=20.11.0
+      }
+    # 安装 pnpm
+    - npm install -g pnpm
+    # 检查 Rust
+    - |
+      if (!(Get-Command rustc -ErrorAction SilentlyContinue)) {
+        Write-Host "请在 GitLab Runner 上预装 Rust"
+      }
+  script:
+    # 显示版本信息
+    - node --version
+    - pnpm --version
+    - rustc --version
+    # 安装依赖
+    - pnpm install
+    # 构建
+    - pnpm tauri build
+  artifacts:
+    name: "TVCBuddy-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - src-tauri/target/release/bundle/msi/*.msi
+      - src-tauri/target/release/bundle/nsis/*.exe
+      - src-tauri/target/release/tvcbuddy.exe
+    expire_in: 90 days
+  cache:
+    key: windows-build
+    paths:
+      - node_modules/
+      - .cargo/
+      - src-tauri/target/
+  only:
+    - main
+    - develop
+    - tags
+    - merge_requests
