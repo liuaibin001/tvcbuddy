@@ -1,11 +1,22 @@
 import { Kimi, Minimax, ZAI } from "@lobehub/icons";
-import { EllipsisVerticalIcon, PencilLineIcon, PlusIcon, ServerIcon } from "lucide-react";
+import { EllipsisVerticalIcon, PencilLineIcon, PlusIcon, ServerIcon, Trash2Icon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { GLMDialog } from "@/components/GLMBanner";
 import { KimiDialog } from "@/components/KimiDialog";
 import { MiniMaxDialog } from "@/components/MiniMaxDialog";
 import { Button } from "@/components/ui/button";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -14,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
-	useCreateConfig,
+	useDeleteConfig,
 	useResetToOriginalConfig,
 	useSetCurrentConfig,
 	useStores,
@@ -33,6 +44,7 @@ function ConfigStores() {
 	const { data: stores } = useStores();
 	const setCurrentStoreMutation = useSetCurrentConfig();
 	const resetToOriginalMutation = useResetToOriginalConfig();
+	const deleteConfigMutation = useDeleteConfig();
 	const navigate = useNavigate();
 
 	const isOriginalConfigActive = !stores.some((store) => store.using);
@@ -49,14 +61,17 @@ function ConfigStores() {
 		}
 	};
 
-	const createStoreMutation = useCreateConfig();
+	const onCreateStore = () => {
+		// Navigate to new config page without creating store first
+		navigate("/edit/new");
+	};
 
-	const onCreateStore = async () => {
-		const store = await createStoreMutation.mutateAsync({
-			title: t("configSwitcher.newConfig"),
-			settings: {},
-		});
-		navigate(`/edit/${store.id}`);
+	const onDeleteStore = async (storeId: string) => {
+		try {
+			await deleteConfigMutation.mutateAsync({ storeId });
+		} catch (error) {
+			console.error(error);
+		}
 	};
 
 	if (stores.length === 0) {
@@ -274,8 +289,8 @@ function ConfigStores() {
 									</div>
 								)}
 
-								{/* Edit Button (Hover) */}
-								<div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all bg-background/95 backdrop-blur shadow-sm border rounded-md p-1">
+								{/* Actions (Hover Overlay) */}
+								<div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all bg-background/95 backdrop-blur shadow-sm border rounded-md p-1 pl-1.5">
 									<Button
 										variant="ghost"
 										size="icon"
@@ -287,6 +302,41 @@ function ConfigStores() {
 									>
 										<PencilLineIcon size={14} />
 									</Button>
+
+									<AlertDialog>
+										<AlertDialogTrigger asChild>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-7 w-7 hover:text-destructive"
+												onClick={(e) => e.stopPropagation()}
+											>
+												<Trash2Icon size={14} />
+											</Button>
+										</AlertDialogTrigger>
+										<AlertDialogContent>
+											<AlertDialogHeader>
+												<AlertDialogTitle>Delete Configuration?</AlertDialogTitle>
+												<AlertDialogDescription>
+													This action cannot be undone. This will permanently delete the
+													<span className="font-medium text-foreground"> {store.title} </span>
+													configuration.
+												</AlertDialogDescription>
+											</AlertDialogHeader>
+											<AlertDialogFooter>
+												<AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+												<AlertDialogAction
+													className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+													onClick={(e) => {
+														e.stopPropagation();
+														onDeleteStore(store.id);
+													}}
+												>
+													Delete
+												</AlertDialogAction>
+											</AlertDialogFooter>
+										</AlertDialogContent>
+									</AlertDialog>
 								</div>
 							</div>
 						);

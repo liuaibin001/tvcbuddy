@@ -57,9 +57,9 @@ const PROVIDER_PRESETS: Record<ProviderType, Partial<ProviderConfig>> = {
 export function ConfigEditorPage() {
 	const navigate = useNavigate();
 	const { storeId } = useParams();
-	const isEditMode = !!storeId;
+	const isEditMode = !!storeId && storeId !== "new";
 
-	const { data: existingStore } = useStore(storeId || "");
+	const { data: existingStore } = useStore(isEditMode ? storeId : "");
 	const createConfigMutation = useCreateConfig();
 	const updateConfigMutation = useUpdateConfig();
 
