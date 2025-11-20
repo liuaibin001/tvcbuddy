@@ -340,34 +340,9 @@ pub async fn create_config(
     // Determine if this should be the active store (true if no other stores exist)
     let should_be_active = stores_data.configs.is_empty();
 
-    // If this is the first config being created and there's an existing settings.json, create an Original Config store
-    if should_be_active {
-        let claude_settings_path = home_dir.join(".claude/settings.json");
-        if claude_settings_path.exists() {
-            // Read existing settings
-            let settings_content = std::fs::read_to_string(&claude_settings_path)
-                .map_err(|e| format!("Failed to read existing Claude settings: {}", e))?;
-
-            let settings_json: Value = serde_json::from_str(&settings_content)
-                .map_err(|e| format!("Failed to parse existing Claude settings: {}", e))?;
-
-            // Create an Original Config store with existing settings
-            let original_store = ConfigStore {
-                id: nanoid::nanoid!(6), // Generate a 6-character ID
-                title: "Original Config".to_string(),
-                created_at: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map_err(|e| format!("Failed to get timestamp: {}", e))?
-                    .as_secs(),
-                settings: settings_json,
-                using: false, // Original Config should not be active by default
-            };
-
-            // Add the Original Config store to the collection
-            stores_data.configs.push(original_store);
-            println!("Created Original Config store from existing settings.json");
-        }
-    }
+    // NOTE: We no longer auto-create "Original Config" here to avoid duplicate config creation.
+    // Users should manually create configs as needed. The backup functionality already preserves
+    // the original settings in ~/.ccconfig/claude_backup/
 
     // If this is the first store (and therefore active), write its settings to the user's actual settings.json with partial update
     if should_be_active {
