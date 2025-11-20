@@ -1,12 +1,11 @@
 import { Kimi, Minimax, ZAI } from "@lobehub/icons";
-import { EllipsisVerticalIcon, PencilLineIcon, PlusIcon } from "lucide-react";
+import { EllipsisVerticalIcon, PencilLineIcon, PlusIcon, ServerIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { GLMDialog } from "@/components/GLMBanner";
 import { KimiDialog } from "@/components/KimiDialog";
 import { MiniMaxDialog } from "@/components/MiniMaxDialog";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -23,10 +22,8 @@ import {
 
 export function ConfigSwitcherPage() {
 	return (
-		<div className="">
-			<section>
-				<ConfigStores />
-			</section>
+		<div className="h-full flex flex-col overflow-hidden bg-background">
+			<ConfigStores />
 		</div>
 	);
 }
@@ -122,132 +119,180 @@ function ConfigStores() {
 	}
 
 	return (
-		<div className="">
+		<>
 			<div
-				className="flex items-center p-3 border-b px-3 justify-between sticky top-0 bg-background z-10"
+				className="flex items-center px-6 py-4 border-b justify-between shrink-0 bg-background"
 				data-tauri-drag-region
 			>
 				<div data-tauri-drag-region>
-					<h3 className="font-bold" data-tauri-drag-region>
+					<h3 className="font-bold text-lg" data-tauri-drag-region>
 						{t("configSwitcher.title")}
 					</h3>
-					<p className="text-sm text-muted-foreground" data-tauri-drag-region>
+					<p className="text-xs text-muted-foreground" data-tauri-drag-region>
 						{t("configSwitcher.description")}
 					</p>
 				</div>
-				<ButtonGroup>
-					<Button
-						variant="outline"
-						onClick={onCreateStore}
-						className="text-muted-foreground"
-						size="sm"
-					>
-						<PlusIcon size={14} />
-						{t("configSwitcher.createConfig")}
-					</Button>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="outline"
-								className="text-muted-foreground"
-								size="sm"
-							>
-								<EllipsisVerticalIcon size={14} />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<GLMDialog
-								trigger={
-									<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-										<ZAI />
-										{t("glm.useZhipuGlm")}
-									</DropdownMenuItem>
-								}
-							/>
-							<MiniMaxDialog
-								trigger={
-									<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-										<Minimax />
-										{t("minimax.useMiniMax")}
-									</DropdownMenuItem>
-								}
-							/>
-							<KimiDialog
-								trigger={
-									<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-										<Kimi />
-										{t("kimi.useKimi")}
-									</DropdownMenuItem>
-								}
-							/>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</ButtonGroup>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="outline" size="sm" className="h-8 gap-2 text-xs">
+							<EllipsisVerticalIcon size={14} />
+							AI Providers
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<GLMDialog
+							trigger={
+								<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+									<ZAI />
+									{t("glm.useZhipuGlm")}
+								</DropdownMenuItem>
+							}
+						/>
+						<MiniMaxDialog
+							trigger={
+								<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+									<Minimax />
+									{t("minimax.useMiniMax")}
+								</DropdownMenuItem>
+							}
+						/>
+						<KimiDialog
+							trigger={
+								<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+									<Kimi />
+									{t("kimi.useKimi")}
+								</DropdownMenuItem>
+							}
+						/>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</div>
 
-			{/* <GLMBanner className="mx-4 mt-4" /> */}
+			<div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 max-w-[1920px] mx-auto">
+					{/* New Config Card */}
+					<div
+						onClick={onCreateStore}
+						className="group relative flex items-center gap-3 rounded-lg border border-dashed border-muted-foreground/30 p-3 transition-all duration-200 cursor-pointer hover:shadow-sm hover:border-primary/50 hover:bg-primary/5"
+					>
+						{/* Icon */}
+						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+							<PlusIcon size={18} />
+						</div>
 
-			<div className="grid grid-cols-3 lg:grid-cols-4 gap-3 p-4">
-				{/* Fixed Claude Original Config Item */}
-				<div
-					role="button"
-					onClick={handleOriginalConfigClick}
-					className={cn(
-						"border rounded-xl p-3 h-[100px] flex flex-col justify-between transition-colors",
-						{
-							"bg-primary/10 border-primary border-2": isOriginalConfigActive,
-						},
-					)}
-				>
-					<div>
-						<div>{t("configSwitcher.originalConfig")}</div>
-						<div className="text-xs text-muted-foreground mt-1">
-							{t("configSwitcher.originalConfigDescription")}
+						{/* Content */}
+						<div className="flex-1 min-w-0 flex flex-col justify-center">
+							<h4 className="font-medium text-sm text-foreground">
+								{t("configSwitcher.createConfig")}
+							</h4>
+							<p className="text-xs text-muted-foreground mt-0.5">
+								Add new config
+							</p>
 						</div>
 					</div>
-				</div>
 
-				{stores.map((store) => {
-					const isCurrentStore = store.using;
-					return (
-						<div
-							role="button"
-							key={store.id}
-							onClick={() => handleStoreClick(store.id, isCurrentStore)}
-							className={cn(
-								"border rounded-xl p-3 h-[100px] flex flex-col justify-between transition-colors disabled:opacity-50",
-								{
-									"bg-primary/10 border-primary border-2": isCurrentStore,
-								},
-							)}
-						>
-							<div>
-								<div>{store.title}</div>
-								{store.settings.env?.ANTHROPIC_BASE_URL && (
-									<div
-										className="text-xs text-muted-foreground mt-1 truncate "
-										title={store.settings.env.ANTHROPIC_BASE_URL}
-									>
-										{store.settings.env.ANTHROPIC_BASE_URL}
+					{/* Claude Original Config */}
+					<div
+						onClick={handleOriginalConfigClick}
+						className={cn(
+							"group relative flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 cursor-pointer hover:shadow-sm hover:border-muted-foreground/30",
+							isOriginalConfigActive
+								? "border-primary bg-primary/5"
+								: "border-muted bg-card"
+						)}
+					>
+						{/* Icon */}
+						<div className={cn(
+							"flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors",
+							isOriginalConfigActive ? "border-primary/20 bg-background text-primary" : "border-muted bg-muted/50 text-muted-foreground"
+						)}>
+							<ServerIcon size={18} />
+						</div>
+
+						{/* Content */}
+						<div className="flex-1 min-w-0 flex flex-col justify-center">
+							<h4 className={cn("font-medium text-sm truncate", isOriginalConfigActive ? "text-primary" : "text-foreground")}>
+								{t("configSwitcher.originalConfig")}
+							</h4>
+							<p className="text-xs text-muted-foreground mt-0.5 truncate">
+								{t("configSwitcher.originalConfigDescription")}
+							</p>
+						</div>
+
+						{/* Active Indicator */}
+						{isOriginalConfigActive && (
+							<div className="absolute top-2 right-2">
+								<span className="relative flex h-2 w-2">
+									<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+									<span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+								</span>
+							</div>
+						)}
+					</div>
+
+					{/* Custom Configs */}
+					{stores.map((store) => {
+						const isCurrentStore = store.using;
+						return (
+							<div
+								key={store.id}
+								onClick={() => handleStoreClick(store.id, isCurrentStore)}
+								className={cn(
+									"group relative flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 cursor-pointer hover:shadow-sm hover:border-muted-foreground/30",
+									isCurrentStore
+										? "border-primary bg-primary/5"
+										: "border-muted bg-card"
+								)}
+							>
+								{/* Icon */}
+								<div className={cn(
+									"flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors",
+									isCurrentStore ? "border-primary/20 bg-background text-primary" : "border-muted bg-muted/50 text-muted-foreground"
+								)}>
+									<ServerIcon size={18} />
+								</div>
+
+								{/* Content */}
+								<div className="flex-1 min-w-0 flex flex-col justify-center">
+									<h4 className={cn("font-medium text-sm truncate", isCurrentStore ? "text-primary" : "text-foreground")}>
+										{store.title}
+									</h4>
+									{store.settings.env?.ANTHROPIC_BASE_URL && (
+										<p className="text-xs text-muted-foreground mt-0.5 truncate" title={store.settings.env.ANTHROPIC_BASE_URL}>
+											{store.settings.env.ANTHROPIC_BASE_URL}
+										</p>
+									)}
+								</div>
+
+								{/* Active Indicator */}
+								{isCurrentStore && (
+									<div className="absolute top-2 right-2">
+										<span className="relative flex h-2 w-2">
+											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+											<span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+										</span>
 									</div>
 								)}
-							</div>
 
-							<div className="flex justify-end">
-								<button
-									className="hover:bg-primary/10 rounded-lg p-2 hover:text-primary"
-									onClick={(e) => {
-										e.stopPropagation();
-										navigate(`/edit/${store.id}`);
-									}}
-								>
-									<PencilLineIcon className="text-muted-foreground" size={14} />
-								</button>
+								{/* Edit Button (Hover) */}
+								<div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all bg-background/95 backdrop-blur shadow-sm border rounded-md p-1">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 hover:text-primary"
+										onClick={(e) => {
+											e.stopPropagation();
+											navigate(`/edit/${store.id}`);
+										}}
+									>
+										<PencilLineIcon size={14} />
+									</Button>
+								</div>
 							</div>
-						</div>
-					);
-				})}
+						);
+					})}
+				</div>
 			</div>
-		</div>
+		</>
 	);
 }
