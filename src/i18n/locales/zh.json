@@ -154,6 +154,7 @@
 	"minimax.step2": "第 2 步：输入 API Key",
 	"minimax.useMiniMax": "使用 MiniMax",
 	"navigation.commands": "命令",
+	"navigation.configuration": "配置",
 	"navigation.configurations": "配置文件",
 	"navigation.mcp": "MCP",
 	"navigation.memory": "记忆",

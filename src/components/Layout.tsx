@@ -111,28 +111,13 @@ export function Layout() {
 		{
 			to: "/codex",
 			icon: FileJsonIcon,
-			label: "Configuration", // 配置文件
+			label: t("navigation.configuration"),
 			end: true, // Exact match only
-		},
-		{
-			to: "/projects",
-			icon: FolderIcon,
-			label: t("navigation.projects"), // 项目
-		},
-		{
-			to: "/memory",
-			icon: BrainIcon,
-			label: t("navigation.memory"), // 记忆
-		},
-		{
-			to: "/commands",
-			icon: TerminalIcon,
-			label: t("navigation.commands"), // 命令
 		},
 		{
 			to: "/codex/settings",
 			icon: SettingsIcon,
-			label: t("navigation.settings"), // 设置
+			label: t("navigation.settings"),
 		},
 	];
 	const currentLinks = activeModule === "codex" ? codexLinks : claudeLinks;

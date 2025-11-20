@@ -100,7 +100,7 @@ function CodexConfigList() {
     return (
         <>
             <div
-                className="flex items-center px-6 py-4 border-b justify-between shrink-0 bg-background"
+                className="flex items-center px-6 py-4 border-b shrink-0 bg-background"
                 data-tauri-drag-region
             >
                 <div data-tauri-drag-region>
@@ -111,14 +111,31 @@ function CodexConfigList() {
                         Manage your AI provider connections.
                     </p>
                 </div>
-                <Button onClick={onCreateStore} size="sm" className="h-8 gap-2 text-xs">
-                    <PlusIcon size={14} />
-                    New Connection
-                </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 max-w-[1920px] mx-auto">
+                    {/* New Connection Card */}
+                    <div
+                        onClick={onCreateStore}
+                        className="group relative flex items-center gap-3 rounded-lg border border-dashed border-muted-foreground/30 p-3 transition-all duration-200 cursor-pointer hover:shadow-sm hover:border-primary/50 hover:bg-primary/5"
+                    >
+                        {/* Icon */}
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                            <PlusIcon size={18} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <h4 className="font-medium text-sm text-foreground">
+                                New Connection
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Add AI provider
+                            </p>
+                        </div>
+                    </div>
+
                     {stores?.map((store) => {
                         const isCurrentStore = store.using;
                         const status = statuses[store.id];

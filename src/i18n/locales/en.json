@@ -154,6 +154,7 @@
 	"minimax.step2": "Step 2: Enter API Key",
 	"minimax.useMiniMax": "Use MiniMax",
 	"navigation.commands": "Commands",
+	"navigation.configuration": "Configuration",
 	"navigation.configurations": "Config files",
 	"navigation.mcp": "MCP",
 	"navigation.memory": "Memory",
