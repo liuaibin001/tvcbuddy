@@ -26,7 +26,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
 	useDeleteConfig,
-	useResetToOriginalConfig,
 	useSetCurrentConfig,
 	useStores,
 	useSystemEnvConfig,
@@ -45,7 +44,6 @@ function ConfigStores() {
 	const { data: stores } = useStores();
 	const { data: systemEnvConfig } = useSystemEnvConfig();
 	const setCurrentStoreMutation = useSetCurrentConfig();
-	const resetToOriginalMutation = useResetToOriginalConfig();
 	const deleteConfigMutation = useDeleteConfig();
 	const navigate = useNavigate();
 
@@ -60,6 +58,9 @@ function ConfigStores() {
 		);
 	});
 
+	// When system default config exists and no custom config is active, show system config as active
+	const isSystemConfigActive = systemEnvConfig?.has_config && !systemConfigExists && isOriginalConfigActive;
+
 	const handleStoreClick = (storeId: string, isCurrentStore: boolean) => {
 		if (!isCurrentStore) {
 			setCurrentStoreMutation.mutate(storeId);
@@ -68,12 +69,6 @@ function ConfigStores() {
 
 	const handleSystemConfigClick = () => {
 		navigate("/edit/system-default");
-	};
-
-	const handleOriginalConfigClick = () => {
-		if (!isOriginalConfigActive) {
-			resetToOriginalMutation.mutate();
-		}
 	};
 
 	const onCreateStore = () => {
@@ -166,16 +161,24 @@ function ConfigStores() {
 					{systemEnvConfig?.has_config && !systemConfigExists && (
 						<div
 							onClick={handleSystemConfigClick}
-							className="group relative flex items-center gap-3 rounded-lg border border-muted bg-card p-3 transition-all duration-200 cursor-pointer hover:shadow-sm hover:border-muted-foreground/30"
+							className={cn(
+								"group relative flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 cursor-pointer hover:shadow-sm hover:border-muted-foreground/30",
+								isSystemConfigActive
+									? "border-primary bg-primary/5"
+									: "border-muted bg-card"
+							)}
 						>
 							{/* Icon */}
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-muted bg-muted/50 text-muted-foreground">
+							<div className={cn(
+								"flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors",
+								isSystemConfigActive ? "border-primary/20 bg-background text-primary" : "border-muted bg-muted/50 text-muted-foreground"
+							)}>
 								<ServerIcon size={18} />
 							</div>
 
 							{/* Content */}
 							<div className="flex-1 min-w-0 flex flex-col justify-center">
-								<h4 className="font-medium text-sm truncate text-foreground">
+								<h4 className={cn("font-medium text-sm truncate", isSystemConfigActive ? "text-primary" : "text-foreground")}>
 									系统默认配置
 								</h4>
 								{systemEnvConfig.base_url && (
@@ -184,6 +187,16 @@ function ConfigStores() {
 									</p>
 								)}
 							</div>
+
+							{/* Active Indicator */}
+							{isSystemConfigActive && (
+								<div className="absolute top-2 right-2">
+									<span className="relative flex h-2 w-2">
+										<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+										<span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+									</span>
+								</div>
+							)}
 
 							{/* Edit button (hover) */}
 							<div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all bg-background/95 backdrop-blur shadow-sm border rounded-md p-1">
@@ -201,45 +214,6 @@ function ConfigStores() {
 							</div>
 						</div>
 					)}
-
-					{/* Claude Original Config */}
-					<div
-						onClick={handleOriginalConfigClick}
-						className={cn(
-							"group relative flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 cursor-pointer hover:shadow-sm hover:border-muted-foreground/30",
-							isOriginalConfigActive
-								? "border-primary bg-primary/5"
-								: "border-muted bg-card"
-						)}
-					>
-						{/* Icon */}
-						<div className={cn(
-							"flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors",
-							isOriginalConfigActive ? "border-primary/20 bg-background text-primary" : "border-muted bg-muted/50 text-muted-foreground"
-						)}>
-							<ServerIcon size={18} />
-						</div>
-
-						{/* Content */}
-						<div className="flex-1 min-w-0 flex flex-col justify-center">
-							<h4 className={cn("font-medium text-sm truncate", isOriginalConfigActive ? "text-primary" : "text-foreground")}>
-								{t("configSwitcher.originalConfig")}
-							</h4>
-							<p className="text-xs text-muted-foreground mt-0.5 truncate">
-								{t("configSwitcher.originalConfigDescription")}
-							</p>
-						</div>
-
-						{/* Active Indicator */}
-						{isOriginalConfigActive && (
-							<div className="absolute top-2 right-2">
-								<span className="relative flex h-2 w-2">
-									<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-									<span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-								</span>
-							</div>
-						)}
-					</div>
 
 					{/* Custom Configs */}
 					{stores.map((store) => {
