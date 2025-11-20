@@ -2487,8 +2487,6 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
     {
         use std::process::Command;
 
-        println!("[DEBUG] Getting network info via ipconfig...");
-
         // Execute ipconfig /all to get detailed network information
         let output = Command::new("ipconfig")
             .arg("/all")
@@ -2506,8 +2504,6 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
             // Try GBK encoding for Chinese Windows
             encoding_rs::GBK.decode(&output.stdout).0.to_string()
         };
-
-        println!("[DEBUG] ipconfig output received, parsing...");
 
         // Parse ipconfig output
         let mut current_adapter: Option<String> = None;
@@ -2530,7 +2526,6 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
                         adapter_dns.join(",")
                     };
 
-                    println!("[DEBUG] Found valid adapter: {} (IP: {}, Gateway: {})", name, ip, gw);
                     found_adapter = Some((name.clone(), ip.clone(), gw.clone(), dns));
                     break; // Use first valid adapter
                 }
@@ -2544,12 +2539,10 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
                     adapter_line.to_string()
                 };
 
-                current_adapter = Some(adapter_name.clone());
+                current_adapter = Some(adapter_name);
                 adapter_ip = None;
                 adapter_gateway = None;
                 adapter_dns.clear();
-
-                println!("[DEBUG] Found adapter: {} (parsed from: {})", adapter_name, trimmed);
                 continue;
             }
 
@@ -2560,7 +2553,6 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
                     // Validate IPv4 format
                     if ip.split('.').count() == 4 && ip.chars().all(|c| c.is_numeric() || c == '.') {
                         adapter_ip = Some(ip.to_string());
-                        println!("[DEBUG]   - IPv4: {}", ip);
                     }
                 }
             }
@@ -2572,7 +2564,6 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
                     let gw = gw_part.trim();
                     if !gw.is_empty() && gw.split('.').count() == 4 {
                         adapter_gateway = Some(gw.to_string());
-                        println!("[DEBUG]   - Gateway: {}", gw);
                     }
                 }
             }
@@ -2584,14 +2575,12 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
                     let dns = dns_part.trim();
                     if !dns.is_empty() && dns.split('.').count() == 4 {
                         adapter_dns.push(dns.to_string());
-                        println!("[DEBUG]   - DNS: {}", dns);
                     }
                 }
             } else if !adapter_dns.is_empty() && trimmed.split('.').count() == 4 &&
                       trimmed.chars().all(|c| c.is_numeric() || c == '.') {
                 // Additional DNS server on separate line
                 adapter_dns.push(trimmed.to_string());
-                println!("[DEBUG]   - DNS: {}", trimmed);
             }
         }
 
@@ -2604,7 +2593,6 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
                     adapter_dns.join(",")
                 };
 
-                println!("[DEBUG] Using last adapter: {} (IP: {}, Gateway: {})", name, ip, gw);
                 found_adapter = Some((name, ip, gw, dns));
             }
         }
@@ -2618,7 +2606,6 @@ pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
                 dns,
             };
 
-            println!("[SUCCESS] Network info retrieved: {:?}", info);
             Ok(info)
         } else {
             Err("No active network adapter with IP and Gateway found".to_string())
@@ -2667,27 +2654,15 @@ pub async fn set_system_network_node(
     {
         use std::process::Command;
 
-        println!("[DEBUG] ========== Starting network node switch ==========");
-        println!("[DEBUG] Interface: {}", interface_alias);
-        println!("[DEBUG] IP: {}", ip);
-        println!("[DEBUG] Prefix Length: {}", prefix_length);
-        println!("[DEBUG] Gateway: {}", gateway);
-        println!("[DEBUG] DNS: {}", dns);
-
         // Check admin privileges first
-        println!("[DEBUG] Checking administrator privileges...");
         let check_admin = Command::new("net")
             .args(&["session"])
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false);
 
-        println!("[DEBUG] Admin check result: {}", check_admin);
-
         if !check_admin {
-            let err_msg = "Administrator privileges are required to change network settings.";
-            println!("[ERROR] {}", err_msg);
-            return Err(err_msg.to_string());
+            return Err("Administrator privileges are required to change network settings.".to_string());
         }
 
         // Calculate subnet mask from prefix length
@@ -2698,10 +2673,7 @@ pub async fn set_system_network_node(
             _ => "255.255.255.0", // Default to /24
         };
 
-        println!("[DEBUG] Using netsh commands...");
-
         // Step 1: Set IP address with static configuration
-        println!("[DEBUG] Step 1: Setting IP address...");
         let set_ip_output = Command::new("netsh")
             .args(&[
                 "interface",
@@ -2716,35 +2688,19 @@ pub async fn set_system_network_node(
                 "gwmetric=1"
             ])
             .output()
-            .map_err(|e| {
-                let err_msg = format!("Failed to execute netsh (set IP): {}", e);
-                println!("[ERROR] {}", err_msg);
-                err_msg
-            })?;
+            .map_err(|e| format!("Failed to execute netsh (set IP): {}", e))?;
 
-        let set_ip_stdout = String::from_utf8_lossy(&set_ip_output.stdout);
         let set_ip_stderr = String::from_utf8_lossy(&set_ip_output.stderr);
 
-        println!("[DEBUG] Set IP exit code: {}", set_ip_output.status.code().unwrap_or(-1));
-        if !set_ip_stdout.is_empty() {
-            println!("[DEBUG] Set IP STDOUT: {}", set_ip_stdout);
-        }
-        if !set_ip_stderr.is_empty() {
-            println!("[DEBUG] Set IP STDERR: {}", set_ip_stderr);
-        }
-
         if !set_ip_output.status.success() {
-            let err_msg = format!(
+            return Err(format!(
                 "Failed to set IP address (exit code: {}): {}",
                 set_ip_output.status.code().unwrap_or(-1),
                 set_ip_stderr
-            );
-            println!("[ERROR] {}", err_msg);
-            return Err(err_msg);
+            ));
         }
 
         // Step 2: Set DNS servers
-        println!("[DEBUG] Step 2: Setting DNS servers...");
         let dns_servers: Vec<&str> = dns.split(',').collect();
 
         // Set primary DNS
@@ -2761,37 +2717,21 @@ pub async fn set_system_network_node(
                     "register=primary"
                 ])
                 .output()
-                .map_err(|e| {
-                    let err_msg = format!("Failed to execute netsh (set DNS): {}", e);
-                    println!("[ERROR] {}", err_msg);
-                    err_msg
-                })?;
+                .map_err(|e| format!("Failed to execute netsh (set DNS): {}", e))?;
 
-            let set_dns_stdout = String::from_utf8_lossy(&set_dns_output.stdout);
             let set_dns_stderr = String::from_utf8_lossy(&set_dns_output.stderr);
 
-            println!("[DEBUG] Set DNS exit code: {}", set_dns_output.status.code().unwrap_or(-1));
-            if !set_dns_stdout.is_empty() {
-                println!("[DEBUG] Set DNS STDOUT: {}", set_dns_stdout);
-            }
-            if !set_dns_stderr.is_empty() {
-                println!("[DEBUG] Set DNS STDERR: {}", set_dns_stderr);
-            }
-
             if !set_dns_output.status.success() {
-                let err_msg = format!(
+                return Err(format!(
                     "Failed to set DNS (exit code: {}): {}",
                     set_dns_output.status.code().unwrap_or(-1),
                     set_dns_stderr
-                );
-                println!("[ERROR] {}", err_msg);
-                return Err(err_msg);
+                ));
             }
         }
 
         // Add additional DNS servers if present
         for (index, dns_server) in dns_servers.iter().skip(1).enumerate() {
-            println!("[DEBUG] Adding alternate DNS server #{}: {}", index + 1, dns_server);
             let _ = Command::new("netsh")
                 .args(&[
                     "interface",
@@ -2805,22 +2745,13 @@ pub async fn set_system_network_node(
                 .output();
         }
 
-        println!("[SUCCESS] Network node switched successfully!");
-        println!("[DEBUG] ========== Network node switch completed ==========");
-
         // Wait for network to stabilize
-        println!("[DEBUG] Waiting 2 seconds for network to stabilize...");
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
         // Verify network configuration by reading it back
-        println!("[DEBUG] Verifying new network configuration...");
         match get_system_network_info().await {
-            Ok(network_info) => {
-                println!("[SUCCESS] Network verification successful: {:?}", network_info);
-                Ok(network_info)
-            }
-            Err(e) => {
-                println!("[WARN] Network verification failed: {}", e);
+            Ok(network_info) => Ok(network_info),
+            Err(_) => {
                 // Still return success with the expected values
                 Ok(NetworkInfo {
                     interface_alias,
