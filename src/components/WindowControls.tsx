@@ -1,44 +1,100 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X } from "lucide-react";
-import { useState } from "react";
+import { Minus, Square, X, Copy } from "lucide-react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 export function WindowControls({ className }: { className?: string }) {
     const [isMaximized, setIsMaximized] = useState(false);
 
-    const minimize = async () => {
-        await getCurrentWindow().minimize();
+    useEffect(() => {
+        const updateMaximizedState = async () => {
+            try {
+                const win = getCurrentWindow();
+                setIsMaximized(await win.isMaximized());
+            } catch (e) {
+                // Ignore errors during initialization (e.g. in browser)
+            }
+        };
+
+        updateMaximizedState();
+
+        let unlisten: (() => void) | undefined;
+        const setupListener = async () => {
+            try {
+                // @ts-ignore
+                unlisten = await getCurrentWindow().listen("tauri://resize", updateMaximizedState);
+            } catch (e) {
+                // Ignore errors
+            }
+        };
+        setupListener();
+
+        return () => {
+            if (unlisten) unlisten();
+        };
+    }, []);
+
+    const handleMinimize = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            await getCurrentWindow().minimize();
+        } catch (error) {
+            console.error("Minimize failed:", error);
+        }
     };
 
-    const toggleMaximize = async () => {
-        const win = getCurrentWindow();
-        await win.toggleMaximize();
-        setIsMaximized(!isMaximized);
+    const handleToggleMaximize = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            const win = getCurrentWindow();
+            await win.toggleMaximize();
+            setIsMaximized(!isMaximized);
+        } catch (error) {
+            console.error("Maximize failed:", error);
+        }
     };
 
-    const close = async () => {
-        await getCurrentWindow().close();
+    const handleClose = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            await getCurrentWindow().close();
+        } catch (error) {
+            console.error("Close failed:", error);
+        }
     };
 
     return (
-        <div className={cn("flex items-center z-50", className)} data-tauri-no-drag>
+        <div
+            className={cn("flex items-center gap-0 z-[9999]", className)}
+            data-tauri-no-drag
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+        >
             <button
-                onClick={minimize}
-                className="p-2 hover:bg-accent/50 transition-colors rounded-md"
+                onClick={handleMinimize}
+                className="inline-flex items-center justify-center w-12 h-8 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors border-none bg-transparent outline-none cursor-pointer"
                 title="Minimize"
             >
                 <Minus size={16} />
             </button>
             <button
-                onClick={toggleMaximize}
-                className="p-2 hover:bg-accent/50 transition-colors rounded-md"
-                title="Maximize"
+                onClick={handleToggleMaximize}
+                className="inline-flex items-center justify-center w-12 h-8 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors border-none bg-transparent outline-none cursor-pointer"
+                title={isMaximized ? "Restore" : "Maximize"}
             >
-                <Square size={14} />
+                {isMaximized ? (
+                    <Copy size={14} className="rotate-180" />
+                ) : (
+                    <Square size={14} />
+                )}
             </button>
             <button
-                onClick={close}
-                className="p-2 hover:bg-red-500/20 hover:text-red-500 transition-colors rounded-md"
+                onClick={handleClose}
+                className="inline-flex items-center justify-center w-12 h-8 text-muted-foreground hover:bg-red-500 hover:text-white transition-colors border-none bg-transparent outline-none cursor-pointer"
                 title="Close"
             >
                 <X size={16} />

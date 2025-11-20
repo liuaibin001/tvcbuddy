@@ -1,0 +1,540 @@
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct NetworkInfo {
+    pub interface_alias: String,
+    pub local_ip: String,
+    pub prefix_length: u8,
+    pub gateway: String,
+    pub dns: String,
+}
+
+#[tauri::command]
+pub async fn check_is_admin() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        // "net session" returns 0 exit code only if running with admin privileges
+        let output = Command::new("net").args(&amp;["session"]).output();
+
+        match output {
+            Ok(o) => o.status.success(),
+            Err(_) => false,
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
+}
+
+#[tauri::command]
+pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+
+        println!("[DEBUG] Getting network info via ipconfig...");
+
+        // Execute ipconfig /all to get detailed network information
+        let output = Command::new("ipconfig")
+            .arg("/all")
+            .output()
+            .map_err(|e| format!("Failed to execute ipconfig: {}", e))?;
+
+        if !output.status.success() {
+            return Err("ipconfig command failed".to_string());
+        }
+
+        // Parse output - ipconfig outputs in system encoding (GBK on Chinese Windows)
+        let stdout = if let Ok(s) = String::from_utf8(output.stdout.clone()) {
+            s
+        } else {
+            // Try GBK encoding for Chinese Windows
+            encoding_rs::GBK.decode(&amp;output.stdout).0.to_string()
+        };
+
+        println!("[DEBUG] ipconfig output received, parsing...");
+
+        // Parse ipconfig output
+        let mut current_adapter: Option<String> = None;
+        let mut adapter_ip: Option<String> = None;
+        let mut adapter_gateway: Option<String> = None;
+        let mut adapter_dns: Vec<String> = Vec::new();
+        let mut found_adapter: Option<(String, String, String, String)> = None;
+
+        for line in stdout.lines() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            // Check for adapter start (line ends with :)
+            // Example: "Ethernet adapter Ethernet:" or "以太网适配器 以太网:"
+            if line
+                .chars()
+                .next()
+                .map_or(false, |c| c.is_alphanumeric() || c > '\\x7f')
+                && line.trim_end().ends_with(':')
+            {
+                // If we have a previous adapter with IP and Gateway, use it
+                if let (Some(name), Some(ip), Some(gw)) = (
+                    current_adapter.clone(),
+                    adapter_ip.clone(),
+                    adapter_gateway.clone(),
+                ) {
+                    let dns = if adapter_dns.is_empty() {
+                        "8.8.8.8".to_string()
+                    } else {
+                        adapter_dns.join(",")
+                    };
+                    println!(
+                        "[DEBUG] Found valid adapter: {} (IP: {}, Gateway: {})",
+                        name, ip, gw
+                    );
+                    found_adapter = Some((name, ip, gw, dns));
+                }
+
+                // Reset for new adapter
+                let raw_name = line.trim_end().trim_end_matches(':');
+                // Clean up name
+                let name = if raw_name.starts_with("Ethernet adapter ") {
+                    raw_name.trim_start_matches("Ethernet adapter ").to_string()
+                } else if raw_name.starts_with("以太网适配器 ") {
+                    raw_name.trim_start_matches("以太网适配器 ").to_string()
+                } else {
+                    raw_name.to_string()
+                };
+
+                current_adapter = Some(name);
+                adapter_ip = None;
+                adapter_gateway = None;
+                adapter_dns.clear();
+                continue;
+            }
+
+            // Parse IPv4 Address
+            if trimmed.starts_with("IPv4 Address") || trimmed.starts_with("IPv4 地址") {
+                if let Some(ip_part) = trimmed.split(':').nth(1) {
+                    let ip = ip_part
+                        .trim()
+                        .trim_end_matches("(Preferred)")
+                        .trim()
+                        .trim_end_matches("(首选)")
+                        .trim();
+                    // Validate IPv4 format
+                    if ip.split('.').count() == 4 && ip.chars().all(|c| c.is_numeric() || c == '.')
+                    {
+                        adapter_ip = Some(ip.to_string());
+                        println!("[DEBUG]   - IPv4: {}", ip);
+                    }
+                }
+            }
+
+            // Parse Default Gateway
+            if trimmed.starts_with("Default Gateway") || trimmed.starts_with("默认网关") {
+                if let Some(gw_part) = trimmed.split(':').nth(1) {
+                    let gw = gw_part.trim();
+                    if !gw.is_empty() && gw.split('.').count() == 4 {
+                        adapter_gateway = Some(gw.to_string());
+                        println!("[DEBUG]   - Gateway: {}", gw);
+                    }
+                }
+            }
+
+            // Parse DNS Servers
+            if trimmed.starts_with("DNS Servers") || trimmed.starts_with("DNS 服务器") {
+                if let Some(dns_part) = trimmed.split(':').nth(1) {
+                    let dns = dns_part.trim();
+                    if !dns.is_empty() && gw.split('.').count() == 4 {
+                        adapter_dns.push(dns.to_string());
+                        println!("[DEBUG]   - DNS: {}", dns);
+                    }
+                }
+            } else if !adapter_dns.is_empty() && !trimmed.contains(':') {
+                // Additional DNS server on separate line
+                // Make sure it looks like an IP
+                if trimmed.split('.').count() == 4
+                    && trimmed.chars().all(|c| c.is_numeric() || c == '.')
+                {
+                    adapter_dns.push(trimmed.to_string());
+                    println!("[DEBUG]   - DNS (cont): {}", trimmed);
+                }
+            }
+        }
+
+        // Check last adapter
+        if let (Some(name), Some(ip), Some(gw)) = (current_adapter, adapter_ip, adapter_gateway) {
+            let dns = if adapter_dns.is_empty() {
+                "8.8.8.8".to_string()
+            } else {
+                adapter_dns.join(",")
+            };
+            println!(
+                "[DEBUG] Found valid adapter (last): {} (IP: {}, Gateway: {})",
+                name, ip, gw
+            );
+            found_adapter = Some((name, ip, gw, dns));
+        }
+
+        if let Some((name, ip, gateway, dns)) = found_adapter {
+            let info = NetworkInfo {
+                interface_alias: name,
+                local_ip: ip,
+                prefix_length: 24, // Default to /24
+                gateway,
+                dns,
+            };
+
+            println!("[SUCCESS] Network info retrieved: {:?}", info);
+            Ok(info)
+        } else {
+            Err("No active network adapter with IP and Gateway found".to_string())
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Err("Network management is only supported on Windows".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn set_system_network_node(
+    interface_alias: String,
+    ip: String,
+    prefix_length: u8,
+    gateway: String,
+    dns: String,
+) -> Result<(), String> {
+    use std::process::Command;
+
+    println!("[DEBUG] ========== Starting network node switch ==========");
+    println!("[DEBUG] Interface: {}", interface_alias);
+    println!("[DEBUG] IP: {}", ip);
+    println!("[DEBUG] Prefix Length: {}", prefix_length);
+    println!("[DEBUG] Gateway: {}", gateway);
+    println!("[DEBUG] DNS: {}", dns);
+
+    #[cfg(target_os = "windows")]
+    {
+        // Check admin privileges first
+        println!("[DEBUG] Checking administrator privileges...");
+        let check_admin = Command::new("net")
+            .args(&amp;["session"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+
+        println!("[DEBUG] Admin check result: {}", check_admin);
+
+        if !check_admin {
+            let err_msg = "Administrator privileges are required to change network settings.";
+            println!("[ERROR] {}", err_msg);
+            return Err(err_msg.to_string());
+        }
+
+        // Calculate subnet mask from prefix length
+        let subnet_mask = prefix_to_subnet_mask(prefix_length);
+        println!("[DEBUG] Calculated subnet mask: {}", subnet_mask);
+
+        // Step 1: Set static IP address
+        println!("[DEBUG] Setting IP address using netsh...");
+        let ip_output = Command::new("netsh")
+            .args(&amp;[
+                "interface",
+                "ipv4",
+                "set",
+                "address",
+                &amp;format!("name=\"{}\"", interface_alias),
+                "source=static",
+                &amp;format!("addr={}", ip),
+                &amp;format!("mask={}", subnet_mask),
+            ])
+            .output()
+            .map_err(|e| {
+                let err_msg = format!("Failed to execute netsh for IP: {}", e);
+                println!("[ERROR] {}", err_msg);
+                err_msg
+            })?;
+
+        if !ip_output.status.success() {
+            let stderr = String::from_utf8_lossy(&amp;ip_output.stderr);
+            let err_msg = format!("Failed to set IP address: {}", stderr);
+            println!("[ERROR] {}", err_msg);
+            return Err(err_msg);
+        }
+        println!("[DEBUG] IP address set successfully");
+
+        // Step 2: Set gateway
+        println!("[DEBUG] Setting gateway using netsh...");
+        let gw_output = Command::new("netsh")
+            .args(&amp;[
+                "interface",
+                "ipv4",
+                "set",
+                "address",
+                &amp;format!("name=\"{}\"", interface_alias),
+                &amp;format!("gateway={}", gateway),
+                "gwmetric=1",
+            ])
+            .output()
+            .map_err(|e| {
+                let err_msg = format!("Failed to execute netsh for gateway: {}", e);
+                println!("[ERROR] {}", err_msg);
+                err_msg
+            })?;
+
+        if !gw_output.status.success() {
+            let stderr = String::from_utf8_lossy(&amp;gw_output.stderr);
+            println!("[WARN] Failed to set gateway: {}", stderr);
+            // Don't return error, continue to set DNS
+        } else {
+            println!("[DEBUG] Gateway set successfully");
+        }
+
+        // Step 3: Set DNS
+        println!("[DEBUG] Setting DNS using netsh...");
+        let dns_servers: Vec<&amp;str> = dns.split(',').map(|s| s.trim()).collect();
+        
+        // Set primary DNS
+        if let Some(primary_dns) = dns_servers.first() {
+            let dns_output = Command::new("netsh")
+                .args(&amp;[
+                    "interface",
+                    "ipv4",
+                    "set",
+                    "dns",
+                    &amp;format!("name=\"{}\"", interface_alias),
+                    "source=static",
+                    &amp;format!("addr={}", primary_dns),
+                ])
+                .output()
+                .map_err(|e| {
+                    let err_msg = format!("Failed to execute netsh for DNS: {}", e);
+                    println!("[ERROR] {}", err_msg);
+                    err_msg
+                })?;
+
+            if !dns_output.status.success() {
+                let stderr = String::from_utf8_lossy(&amp;dns_output.stderr);
+                let err_msg = format!("Failed to set DNS: {}", stderr);
+                println!("[ERROR] {}", err_msg);
+                return Err(err_msg);
+            }
+            println!("[DEBUG] Primary DNS set successfully: {}", primary_dns);
+
+            // Add secondary DNS servers if any
+            for secondary_dns in dns_servers.iter().skip(1) {
+                let add_dns_output = Command::new("netsh")
+                    .args(&amp;[
+                        "interface",
+                        "ipv4",
+                        "add",
+                        "dns",
+                        &amp;format!("name=\"{}\"", interface_alias),
+                        &amp;format!("addr={}", secondary_dns),
+                        "index=2",
+                    ])
+                    .output()
+                    .map_err(|e| {
+                        let err_msg = format!("Failed to add secondary DNS: {}", e);
+                        println!("[ERROR] {}", err_msg);
+                        err_msg
+                    })?;
+
+                if add_dns_output.status.success() {
+                    println!("[DEBUG] Secondary DNS added: {}", secondary_dns);
+                } else {
+                    let stderr = String::from_utf8_lossy(&amp;add_dns_output.stderr);
+                    println!("[WARN] Failed to add secondary DNS {}: {}", secondary_dns, stderr);
+                }
+            }
+        }
+
+        println!("[SUCCESS] Network node switched successfully!");
+        println!("[DEBUG] ========== Network node switch completed ==========");
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        println!("[DEBUG] Configuring network on Linux...");
+
+        // Step 1: Set IP address with CIDR notation
+        println!("[DEBUG] Setting IP address using ip command...");
+        let ip_output = Command::new("ip")
+            .args(&amp;[
+                "addr",
+                "add",
+                &amp;format!("{}/{}", ip, prefix_length),
+                "dev",
+                &amp;interface_alias,
+            ])
+            .output()
+            .map_err(|e| format!("Failed to set IP address: {}", e))?;
+
+        if !ip_output.status.success() {
+            let stderr = String::from_utf8_lossy(&amp;ip_output.stderr);
+            println!("[ERROR] Failed to set IP: {}", stderr);
+            return Err(format!("Failed to set IP address: {}", stderr));
+        }
+        println!("[DEBUG] IP address set successfully");
+
+        // Step 2: Set default gateway
+        println!("[DEBUG] Setting gateway using ip route...");
+        let gw_output = Command::new("ip")
+            .args(&amp;["route", "add", "default", "via", &amp;gateway])
+            .output()
+            .map_err(|e| format!("Failed to set gateway: {}", e))?;
+
+        if !gw_output.status.success() {
+            let stderr = String::from_utf8_lossy(&amp;gw_output.stderr);
+            println!("[WARN] Failed to set gateway: {}", stderr);
+        } else {
+            println!("[DEBUG] Gateway set successfully");
+        }
+
+        // Step 3: Set DNS by writing to /etc/resolv.conf
+        println!("[DEBUG] Setting DNS in /etc/resolv.conf...");
+        let dns_servers: Vec<&amp;str> = dns.split(',').map(|s| s.trim()).collect();
+        let dns_content = dns_servers
+            .iter()
+            .map(|server| format!("nameserver {}", server))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        std::fs::write("/etc/resolv.conf", dns_content)
+            .map_err(|e| format!("Failed to write DNS config: {}", e))?;
+
+        println!("[DEBUG] DNS set successfully");
+        println!("[SUCCESS] Network configuration completed on Linux!");
+        Ok(())
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        println!("[DEBUG] Configuring network on macOS...");
+
+        // Note: interface_alias on macOS should be the service name, not the device name
+        // For example: "Wi-Fi" or "Ethernet"
+        
+        // Calculate subnet mask from prefix length
+        let subnet_mask = prefix_to_subnet_mask(prefix_length);
+        println!("[DEBUG] Calculated subnet mask: {}", subnet_mask);
+
+        // Step 1: Set IP, subnet mask, and gateway
+        println!("[DEBUG] Setting network configuration using networksetup...");
+        let config_output = Command::new("networksetup")
+            .args(&amp;[
+                "-setmanual",
+                &amp;interface_alias,
+                &amp;ip,
+                &amp;subnet_mask,
+                &amp;gateway,
+            ])
+            .output()
+            .map_err(|e| format!("Failed to set network configuration: {}", e))?;
+
+        if !config_output.status.success() {
+            let stderr = String::from_utf8_lossy(&amp;config_output.stderr);
+            println!("[ERROR] Failed to set network config: {}", stderr);
+            return Err(format!("Failed to set network configuration: {}", stderr));
+        }
+        println!("[DEBUG] Network configuration set successfully");
+
+        // Step 2: Set DNS servers
+        println!("[DEBUG] Setting DNS servers using networksetup...");
+        let dns_servers: Vec<&amp;str> = dns.split(',').map(|s| s.trim()).collect();
+        
+        let mut dns_args = vec!["-setdnsservers", &amp;interface_alias];
+        dns_args.extend(dns_servers.iter());
+
+        let dns_output = Command::new("networksetup")
+            .args(&amp;dns_args)
+            .output()
+            .map_err(|e| format!("Failed to set DNS servers: {}", e))?;
+
+        if !dns_output.status.success() {
+            let stderr = String::from_utf8_lossy(&amp;dns_output.stderr);
+            println!("[ERROR] Failed to set DNS: {}", stderr);
+            return Err(format!("Failed to set DNS servers: {}", stderr));
+        }
+
+        println!("[DEBUG] DNS servers set successfully");
+        println!("[SUCCESS] Network configuration completed on macOS!");
+        Ok(())
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+    {
+        Err("Network management is not supported on this operating system".to_string())
+    }
+}
+
+// Helper function to convert CIDR prefix length to subnet mask
+fn prefix_to_subnet_mask(prefix: u8) -> String {
+    if prefix > 32 {
+        return "255.255.255.0".to_string(); // Default fallback
+    }
+    
+    let mask: u32 = if prefix == 0 {
+        0
+    } else {
+        u32::MAX << (32 - prefix)
+    };
+    
+    format!(
+        "{}.{}.{}.{}",
+        (mask >> 24) & 0xFF,
+        (mask >> 16) & 0xFF,
+        (mask >> 8) & 0xFF,
+        mask & 0xFF
+    )
+}
+
+#[tauri::command]
+pub async fn check_site_latency(url: String) -> Result<u64, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let start = std::time::Instant::now();
+    let response = client.head(&amp;url).send().await;
+
+    // If HEAD fails (some sites block it), try GET
+    let result = match response {
+        Ok(_) => Ok(()),
+        Err(_) => client.get(&amp;url).send().await.map(|_| ()),
+    };
+
+    match result {
+        Ok(_) => Ok(start.elapsed().as_millis() as u64),
+        Err(e) => Err(format!("Failed to connect: {}", e)),
+    }
+}
+
+#[tauri::command]
+pub async fn get_public_ip(url: Option<String>) -> Result<String, String> {
+    let target_url = url.unwrap_or_else(|| "https://api.ipify.org?format=text".to_string());
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let response = client
+        .get(&amp;target_url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to request public IP: {}", e))?;
+
+    if response.status().is_success() {
+        let text = response
+            .text()
+            .await
+            .map_err(|e| format!("Failed to read response: {}", e))?;
+        Ok(text.trim().to_string())
+    } else {
+        Err(format!("Request failed with status: {}", response.status()))
+    }
+}

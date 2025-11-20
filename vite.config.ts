@@ -1,6 +1,14 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const packageJson = JSON.parse(
+	readFileSync(resolve(__dirname, "package.json"), "utf-8"),
+);
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -32,14 +40,17 @@ export default defineConfig(async () => ({
 		host: host || false,
 		hmr: host
 			? {
-					protocol: "ws",
-					host,
-					port: 1421,
-				}
+				protocol: "ws",
+				host,
+				port: 1421,
+			}
 			: undefined,
 		watch: {
 			// 3. tell Vite to ignore watching `src-tauri`
 			ignored: ["**/src-tauri/**"],
 		},
+	},
+	define: {
+		"import.meta.env.PACKAGE_VERSION": JSON.stringify(packageJson.version),
 	},
 }));

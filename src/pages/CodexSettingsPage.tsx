@@ -1,173 +1,155 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { open } from "@tauri-apps/plugin-dialog";
-import { FolderIcon, SaveIcon } from "lucide-react";
-import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-
 import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-    type CodexGlobalSettings,
-    useCodexGlobalSettings,
-    useUpdateCodexGlobalSettings,
-} from "@/lib/query";
-
-const settingsSchema = z.object({
-    enabled: z.boolean(),
-    root_path: z.string().min(1, "Root path is required"),
-});
+import { useCodexGlobalSettings, useUpdateCodexGlobalSettings } from "@/lib/query";
+import { cn } from "@/lib/utils";
+import { open } from "@tauri-apps/plugin-dialog";
+import { ArrowLeftIcon, FolderIcon, SaveIcon, Settings2Icon, ShieldAlertIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function CodexSettingsPage() {
-    const { data: settings, isLoading } = useCodexGlobalSettings();
-    const mutation = useUpdateCodexGlobalSettings();
+    const navigate = useNavigate();
+    const { data: settings } = useCodexGlobalSettings();
+    const updateSettingsMutation = useUpdateCodexGlobalSettings();
 
-    const {
-        register,
-        control,
-        handleSubmit,
-        setValue,
-        reset,
-        formState: { errors, isDirty },
-    } = useForm<CodexGlobalSettings>({
-        resolver: zodResolver(settingsSchema),
-        defaultValues: {
-            enabled: true,
-            root_path: "",
-        },
-    });
+    const [enabled, setEnabled] = useState(false);
+    const [rootPath, setRootPath] = useState("");
 
     useEffect(() => {
         if (settings) {
-            reset(settings);
+            setEnabled(settings.enabled);
+            setRootPath(settings.root_path);
         }
-    }, [settings, reset]);
+    }, [settings]);
 
-    const onSubmit = (data: CodexGlobalSettings) => {
-        mutation.mutate(data);
+    const handleSave = () => {
+        updateSettingsMutation.mutate({
+            enabled,
+            root_path: rootPath,
+        });
     };
 
-    const handleSelectPath = async () => {
+    const handleSelectRootPath = async () => {
         try {
             const selected = await open({
                 directory: true,
                 multiple: false,
-                title: "Select Codex Root Directory",
-                defaultPath: settings?.root_path || undefined,
+                title: "Select Project Root Directory",
             });
-
-            if (selected) {
-                const path = Array.isArray(selected) ? selected[0] : selected;
-                setValue("root_path", path, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                });
+            if (selected && typeof selected === "string") {
+                setRootPath(selected);
             }
-        } catch (err) {
-            console.error("Failed to open dialog:", err);
-            toast.error("Failed to open folder picker");
+        } catch (error) {
+            console.error("Failed to open directory dialog:", error);
         }
     };
 
-    if (isLoading) {
-        return <div className="p-6">Loading settings...</div>;
-    }
-
     return (
-        <div className="p-6 max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Codex Settings</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Global configuration for the Codex integration.
-                    </p>
-                </div>
-                <Button
-                    onClick={handleSubmit(onSubmit)}
-                    disabled={!isDirty || mutation.isPending}
-                >
-                    <SaveIcon className="mr-2 h-4 w-4" />
-                    Save Changes
+        <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+            {/* Header */}
+            <header className="h-16 border-b flex items-center px-6 sticky top-0 bg-background/80 backdrop-blur-md z-10 shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => navigate("/codex")} className="mr-4">
+                    <ArrowLeftIcon size={20} />
                 </Button>
-            </div>
+                <div className="flex flex-col">
+                    <h1 className="text-lg font-semibold leading-none">Global Settings</h1>
+                    <span className="text-xs text-muted-foreground mt-1">Configure Codex behavior</span>
+                </div>
+            </header>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>General</CardTitle>
-                        <CardDescription>
-                            Control the overall behavior of Codex.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                                <Label className="text-base">Enable Codex</Label>
-                                <p className="text-sm text-muted-foreground">
-                                    Turn on to enable Codex features in the application.
-                                </p>
+            <main className="flex-1 container max-w-5xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-12 overflow-hidden">
+                {/* Left: Form */}
+                <div className="lg:col-span-7 space-y-10 py-4 overflow-y-auto pr-2 scrollbar-hide">
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                            <Settings2Icon size={14} />
+                            <span>General Configuration</span>
+                        </div>
+
+                        <div className="space-y-8">
+                            {/* Enable Switch */}
+                            <div className="flex items-center justify-between group p-4 border rounded-xl hover:bg-accent/30 transition-colors">
+                                <div className="space-y-1">
+                                    <Label className="text-base font-medium">Enable Codex</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Master switch to enable or disable all Codex AI features.
+                                    </p>
+                                </div>
+                                <Switch checked={enabled} onCheckedChange={setEnabled} />
                             </div>
-                            <Controller
-                                control={control}
-                                name="enabled"
-                                render={({ field }) => (
-                                    <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
+
+                            {/* Root Path Input */}
+                            <div className="group">
+                                <Label className="text-xs font-normal text-muted-foreground mb-1.5 block group-focus-within:text-primary transition-colors">
+                                    PROJECT ROOT PATH
+                                </Label>
+                                <div className="relative cursor-pointer" onClick={handleSelectRootPath}>
+                                    <Input
+                                        value={rootPath}
+                                        readOnly
+                                        placeholder="/path/to/projects"
+                                        className="h-12 text-lg bg-transparent border-0 border-b border-input rounded-none px-0 pl-8 focus-visible:ring-0 focus-visible:border-primary transition-all placeholder:text-muted-foreground/30 font-mono cursor-pointer hover:border-primary/50"
                                     />
-                                )}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Paths</CardTitle>
-                        <CardDescription>
-                            Configure where Codex stores its data.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="root_path">Codex Root Directory</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    id="root_path"
-                                    {...register("root_path")}
-                                    placeholder="~/.codex"
-                                />
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={handleSelectPath}
-                                >
-                                    <FolderIcon className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            {errors.root_path && (
-                                <p className="text-sm text-red-500">
-                                    {errors.root_path.message}
+                                    <FolderIcon size={18} className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-primary transition-colors" />
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    Click to select the base directory where Codex will look for project configurations.
                                 </p>
-                            )}
-                            <p className="text-xs text-muted-foreground">
-                                The main directory for Codex configuration and data.
-                            </p>
+                            </div>
                         </div>
-                    </CardContent>
-                </Card>
-            </form>
+                    </section>
+
+                    {/* Action Buttons (Moved from Header) */}
+                    <div className="flex items-center gap-4 pt-4">
+                        <Button onClick={handleSave} className="gap-2">
+                            <SaveIcon size={16} />
+                            Save Changes
+                        </Button>
+                        <Button variant="ghost" onClick={() => navigate("/codex")}>
+                            Cancel
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Right: Info Pane */}
+                <div className="lg:col-span-5 py-4 overflow-hidden">
+                    <div className="space-y-6">
+                        <div className="bg-muted/30 rounded-xl border p-6 space-y-6">
+                            <div className="flex items-center justify-between border-b pb-4">
+                                <h3 className="font-semibold text-sm">System Status</h3>
+                                <div className={cn(
+                                    "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full",
+                                    enabled ? "text-green-600 bg-green-500/10" : "text-yellow-600 bg-yellow-500/10"
+                                )}>
+                                    <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", enabled ? "bg-green-500" : "bg-yellow-500")} />
+                                    {enabled ? "System Active" : "System Paused"}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Current Root</span>
+                                    <div className="flex items-center gap-2">
+                                        <FolderIcon size={14} className="text-muted-foreground" />
+                                        <span className="text-sm font-mono break-all bg-background px-2 py-1 rounded border">
+                                            {rootPath || "Not configured"}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-3 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+                                    <ShieldAlertIcon size={16} className="text-yellow-600 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                        Changing the root path may require restarting the application for all file watchers to update correctly.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }

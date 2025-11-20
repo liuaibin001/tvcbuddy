@@ -14,7 +14,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { cn, isMacOS } from "../lib/utils";
+import { cn } from "../lib/utils";
 import { UpdateButton } from "./UpdateButton";
 import { WindowControls } from "./WindowControls";
 import { ScrollArea } from "./ui/scroll-area";
@@ -135,27 +135,15 @@ export function Layout() {
 			label: t("navigation.settings"), // 设置
 		},
 	];
-
-	// Determine which links to show
 	const currentLinks = activeModule === "codex" ? codexLinks : claudeLinks;
 
 	return (
-		<div className="min-h-screen bg-background flex flex-col relative">
-			{/* Custom Title Bar Region */}
-			<div
-				data-tauri-drag-region
-				className="h-10 w-full absolute top-0 left-0 z-50"
-				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-			/>
+		<div className="h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground">
+			{/* Header with drag region and window controls */}
+			<div className="relative h-8 flex-shrink-0" style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
+				<WindowControls className="absolute top-0 right-0" />
+			</div>
 
-			{/* Window Controls for Windows/Linux */}
-			{!isMacOS && (
-				<div className="absolute top-2 right-2 z-50">
-					<WindowControls />
-				</div>
-			)}
-
-			{/* Floating Home Button */}
 			<button
 				onClick={() => navigate("/")}
 				className="absolute bottom-8 right-8 h-12 w-12 bg-primary text-primary-foreground rounded-2xl shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all z-50 flex items-center justify-center"
@@ -164,61 +152,54 @@ export function Layout() {
 				<LayoutGridIcon size={20} />
 			</button>
 
-			<div className="flex flex-1 overflow-hidden pt-6">
-				<nav
-					className="w-[200px] bg-background border-r flex flex-col"
-					data-tauri-drag-region
-				>
-					<div
-						className="flex flex-col flex-1 justify-between mt-4"
-						data-tauri-drag-region
-					>
-						<ul className="px-3 pt-3 space-y-2">
-							{currentLinks.map((link) => (
-								<li key={link.to}>
-									<NavLink
-										to={link.to}
-										end={link.end}
-										onClick={link.onClick}
-										className={({ isActive }) =>
-											cn(
-												"flex items-center gap-2 px-3 py-2 rounded-xl cursor-default select-none ",
-												{
-													"bg-primary text-primary-foreground": isActive && link.to !== "#",
-													"hover:bg-accent hover:text-accent-foreground":
-														!isActive,
-													"opacity-50 cursor-not-allowed": link.to === "#",
-												},
-											)
-										}
-									>
-										<link.icon size={14} />
-										{link.label}
-									</NavLink>
-								</li>
-							))}
-						</ul>
+			<div className="flex flex-1 overflow-hidden">
+				{activeModule !== "proxy" && (
+					<nav className="w-[200px] bg-background border-r flex flex-col">
+						<div className="flex flex-col flex-1 justify-between mt-4">
+							<ul className="px-3 pt-3 space-y-2">
+								{currentLinks.map((link) => (
+									<li key={link.to}>
+										<NavLink
+											to={link.to}
+											end={link.end}
+											onClick={link.onClick}
+											className={({ isActive }) =>
+												cn(
+													"flex items-center gap-2 px-3 py-2 rounded-xl cursor-default select-none ",
+													{
+														"bg-primary text-primary-foreground": isActive && link.to !== "#",
+														"hover:bg-accent hover:text-accent-foreground":
+															!isActive,
+														"opacity-50 cursor-not-allowed": link.to === "#",
+													},
+												)
+											}
+										>
+											<link.icon size={14} />
+											{link.label}
+										</NavLink>
+									</li>
+								))}
+							</ul>
 
-						<div className="space-y-2">
-							<UpdateButton />
+							<div className="space-y-2">
+								<UpdateButton />
+							</div>
 						</div>
-					</div>
-				</nav>
-				{isProjectsRoute ? (
-					<main
-						className="flex-1 h-screen overflow-hidden"
-						data-tauri-drag-region
-					>
+					</nav>
+				)}
+				{isProjectsRoute || location.pathname.startsWith("/codex") || location.pathname.startsWith("/proxy") ? (
+					<main className="flex-1 h-screen overflow-hidden">
 						<Outlet />
 					</main>
 				) : (
 					<ScrollArea className="flex-1 h-full [&>div>div]:!block">
-						<main className="" data-tauri-drag-region>
+						<main className="">
 							<Outlet />
 						</main>
 					</ScrollArea>
 				)}
 			</div>
-		</div>
+		</div >
 	);
 }

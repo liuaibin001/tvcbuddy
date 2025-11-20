@@ -1,13 +1,14 @@
 {
 	"name": "tvcbuddy",
 	"private": true,
-	"version": "0.2.0",
+	"version": "0.3.8",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc && vite build",
 		"preview": "vite preview",
-		"tauri": "tauri"
+		"tauri": "tauri",
+		"release": "node scripts/release.mjs"
 	},
 	"dependencies": {
 		"@codemirror/fold": "^0.19.4",

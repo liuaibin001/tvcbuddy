@@ -1,6 +1,6 @@
 mod commands;
-mod tray;
 mod hook_server;
+mod tray;
 
 use commands::*;
 use hook_server::start_hook_server;
@@ -107,12 +107,12 @@ pub fn run() {
             app.on_menu_event(|app_handle, event| {
                 use tauri::Manager;
                 let event_id = event.id().0.as_str();
-                
+
                 // Try to handle as tray menu event first
                 if tray::handle_tray_menu_event(&app_handle, event_id) {
                     return;
                 }
-                
+
                 // Handle app menu events
                 match event_id {
                     "open_config_path" => {
@@ -213,7 +213,13 @@ pub fn run() {
             set_using_codex_store,
             get_current_codex_store,
             get_codex_global_settings,
-            update_codex_global_settings
+            update_codex_global_settings,
+            check_codex_connection,
+            get_system_network_info,
+            set_system_network_node,
+            check_site_latency,
+            get_public_ip,
+            check_is_admin
         ])
         .on_window_event(|_window, _event| {
             #[cfg(target_os = "macos")]

@@ -1,9 +1,9 @@
+use nanoid;
+use reqwest;
 use serde_json::Value;
 use std::path::PathBuf;
 use tauri_plugin_updater::UpdaterExt;
-use reqwest;
 use uuid::Uuid;
-use nanoid;
 
 // Application configuration directory
 const APP_CONFIG_DIR: &str = ".ccconfig";
@@ -783,7 +783,8 @@ pub async fn open_config_path() -> Result<(), String> {
 // MCP Server management functions
 
 #[tauri::command]
-pub async fn get_global_mcp_servers() -> Result<std::collections::HashMap<String, McpServer>, String> {
+pub async fn get_global_mcp_servers() -> Result<std::collections::HashMap<String, McpServer>, String>
+{
     let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
     let claude_json_path = home_dir.join(".claude.json");
 
@@ -797,7 +798,8 @@ pub async fn get_global_mcp_servers() -> Result<std::collections::HashMap<String
     let json_value: Value = serde_json::from_str(&content)
         .map_err(|e| format!("Failed to parse .claude.json: {}", e))?;
 
-    let mcp_servers_obj = json_value.get("mcpServers")
+    let mcp_servers_obj = json_value
+        .get("mcpServers")
         .and_then(|servers| servers.as_object())
         .cloned()
         .unwrap_or_else(serde_json::Map::new);
@@ -927,7 +929,7 @@ pub async fn check_for_updates(app: tauri::AppHandle) -> Result<UpdateInfo, Stri
     match app.updater() {
         Ok(updater) => {
             println!("✅ Updater initialized successfully");
-            println!("📡 Checking update endpoint: https://github.com/djyde/ccmate-release/releases/latest/download/latest.json");
+            println!("📡 Checking update endpoint: https://github.com/liuaibin001/tvcbuddy/releases/latest/download/latest.json");
 
             match updater.check().await {
                 Ok(Some(update)) => {
@@ -996,7 +998,10 @@ pub async fn unlock_cc_ext() -> Result<(), String> {
         if json_value.get("primaryApiKey").is_none() {
             // Add primaryApiKey to existing config
             if let Some(obj) = json_value.as_object_mut() {
-                obj.insert("primaryApiKey".to_string(), Value::String("xxx".to_string()));
+                obj.insert(
+                    "primaryApiKey".to_string(),
+                    Value::String("xxx".to_string()),
+                );
             }
 
             // Write back to file
@@ -1048,7 +1053,10 @@ pub async fn read_project_usage_files() -> Result<Vec<ProjectUsageRecord>, Strin
     let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
     let projects_dir = home_dir.join(".claude/projects");
 
-    println!("🔍 Looking for projects directory: {}", projects_dir.display());
+    println!(
+        "🔍 Looking for projects directory: {}",
+        projects_dir.display()
+    );
 
     if !projects_dir.exists() {
         println!("❌ Projects directory does not exist");
@@ -1062,7 +1070,10 @@ pub async fn read_project_usage_files() -> Result<Vec<ProjectUsageRecord>, Strin
     let mut lines_processed = 0;
 
     // Recursively find all .jsonl files in the projects directory and subdirectories
-    fn find_jsonl_files(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>) -> Result<(), String> {
+    fn find_jsonl_files(
+        dir: &std::path::Path,
+        files: &mut Vec<std::path::PathBuf>,
+    ) -> Result<(), String> {
         let entries = std::fs::read_dir(dir)
             .map_err(|e| format!("Failed to read directory {}: {}", dir.display(), e))?;
 
@@ -1106,22 +1117,24 @@ pub async fn read_project_usage_files() -> Result<Vec<ProjectUsageRecord>, Strin
                 .map_err(|e| format!("Failed to parse JSON line: {}", e))?;
 
             // Extract the required fields
-            let uuid = json_value.get("uuid")
+            let uuid = json_value
+                .get("uuid")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
 
-            let timestamp = json_value.get("timestamp")
+            let timestamp = json_value
+                .get("timestamp")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
 
             // Extract model field (optional) - check both top-level and nested in message field
-            let model = if let Some(model_str) = json_value.get("model")
-                .and_then(|v| v.as_str()) {
+            let model = if let Some(model_str) = json_value.get("model").and_then(|v| v.as_str()) {
                 Some(model_str.to_string())
             } else if let Some(message_obj) = json_value.get("message") {
-                message_obj.get("model")
+                message_obj
+                    .get("model")
                     .and_then(|v| v.as_str())
                     .map(|s| s.to_string())
             } else {
@@ -1132,14 +1145,18 @@ pub async fn read_project_usage_files() -> Result<Vec<ProjectUsageRecord>, Strin
             let usage = if let Some(usage_obj) = json_value.get("usage") {
                 Some(UsageData {
                     input_tokens: usage_obj.get("input_tokens").and_then(|v| v.as_u64()),
-                    cache_read_input_tokens: usage_obj.get("cache_read_input_tokens").and_then(|v| v.as_u64()),
+                    cache_read_input_tokens: usage_obj
+                        .get("cache_read_input_tokens")
+                        .and_then(|v| v.as_u64()),
                     output_tokens: usage_obj.get("output_tokens").and_then(|v| v.as_u64()),
                 })
             } else if let Some(message_obj) = json_value.get("message") {
                 if let Some(usage_obj) = message_obj.get("usage") {
                     Some(UsageData {
                         input_tokens: usage_obj.get("input_tokens").and_then(|v| v.as_u64()),
-                        cache_read_input_tokens: usage_obj.get("cache_read_input_tokens").and_then(|v| v.as_u64()),
+                        cache_read_input_tokens: usage_obj
+                            .get("cache_read_input_tokens")
+                            .and_then(|v| v.as_u64()),
                         output_tokens: usage_obj.get("output_tokens").and_then(|v| v.as_u64()),
                     })
                 } else {
@@ -1170,7 +1187,12 @@ pub async fn read_project_usage_files() -> Result<Vec<ProjectUsageRecord>, Strin
         }
     }
 
-    println!("📊 Summary: Processed {} files, {} lines, found {} records", files_processed, lines_processed, all_records.len());
+    println!(
+        "📊 Summary: Processed {} files, {} lines, found {} records",
+        files_processed,
+        lines_processed,
+        all_records.len()
+    );
     Ok(all_records)
 }
 
@@ -1239,19 +1261,25 @@ pub async fn install_and_restart(app: tauri::AppHandle) -> Result<(), String> {
                     println!("🎯 Update target: {:?}", update.target);
 
                     // Download and install the update
-                    match update.download_and_install(
-                        |chunk_length, content_length| {
-                            let progress = if let Some(total) = content_length {
-                                (chunk_length as f64 / total as f64) * 100.0
-                            } else {
-                                0.0
-                            };
-                            println!("⬇️  Download progress: {:.1}% ({} bytes)", progress, chunk_length);
-                        },
-                        || {
-                            println!("✅ Download completed! Preparing to restart...");
-                        }
-                    ).await {
+                    match update
+                        .download_and_install(
+                            |chunk_length, content_length| {
+                                let progress = if let Some(total) = content_length {
+                                    (chunk_length as f64 / total as f64) * 100.0
+                                } else {
+                                    0.0
+                                };
+                                println!(
+                                    "⬇️  Download progress: {:.1}% ({} bytes)",
+                                    progress, chunk_length
+                                );
+                            },
+                            || {
+                                println!("✅ Download completed! Preparing to restart...");
+                            },
+                        )
+                        .await
+                    {
                         Ok(_) => {
                             println!("🔄 Update installed successfully! Restarting application in 500ms...");
 
@@ -1391,7 +1419,9 @@ fn get_os_version() -> Result<String, String> {
         if let Ok(content) = fs::read_to_string("/etc/os-release") {
             for line in content.lines() {
                 if line.starts_with("VERSION_ID=") {
-                    let version = line.split('=').nth(1)
+                    let version = line
+                        .split('=')
+                        .nth(1)
                         .unwrap_or("Unknown")
                         .trim_matches('"');
                     return Ok(version.to_string());
@@ -1437,7 +1467,8 @@ pub async fn read_claude_projects() -> Result<Vec<ProjectConfig>, String> {
     let json_value: Value = serde_json::from_str(&content)
         .map_err(|e| format!("Failed to parse .claude.json: {}", e))?;
 
-    let projects_obj = json_value.get("projects")
+    let projects_obj = json_value
+        .get("projects")
         .and_then(|projects| projects.as_object())
         .cloned()
         .unwrap_or_else(serde_json::Map::new);
@@ -1472,8 +1503,8 @@ pub async fn read_claude_config_file() -> Result<ClaudeConfigFile, String> {
         let content = std::fs::read_to_string(&claude_json_path)
             .map_err(|e| format!("Failed to read .claude.json: {}", e))?;
 
-        let json_content: Value = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+        let json_content: Value =
+            serde_json::from_str(&content).map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
         Ok(ClaudeConfigFile {
             path: path_str,
@@ -1504,7 +1535,11 @@ pub async fn write_claude_config_file(content: Value) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn track(event: String, properties: serde_json::Value, app: tauri::AppHandle) -> Result<(), String> {
+pub async fn track(
+    event: String,
+    properties: serde_json::Value,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
     println!("📊 Tracking event: {}", event);
 
     // Get distinct_id
@@ -1539,12 +1574,19 @@ pub async fn track(event: String, properties: serde_json::Value, app: tauri::App
     }
 
     // Add timestamp if not provided
-    if !payload["properties"].as_object().unwrap().contains_key("timestamp") {
+    if !payload["properties"]
+        .as_object()
+        .unwrap()
+        .contains_key("timestamp")
+    {
         let timestamp = chrono::Utc::now().to_rfc3339();
         payload["properties"]["timestamp"] = serde_json::Value::String(timestamp);
     }
 
-    println!("📤 Sending to PostHog: {}", serde_json::to_string_pretty(&payload).unwrap());
+    println!(
+        "📤 Sending to PostHog: {}",
+        serde_json::to_string_pretty(&payload).unwrap()
+    );
 
     // Send request to PostHog
     let client = reqwest::Client::new();
@@ -1587,9 +1629,13 @@ fn get_latest_hook_command() -> serde_json::Value {
 }
 
 /// Update existing ccmate hooks for specified events (doesn't add new ones)
-fn update_existing_hooks(hooks_obj: &mut serde_json::Map<String, serde_json::Value>, events: &[&str]) -> Result<bool, String> {
+fn update_existing_hooks(
+    hooks_obj: &mut serde_json::Map<String, serde_json::Value>,
+    events: &[&str],
+) -> Result<bool, String> {
     let latest_hook_command = get_latest_hook_command();
-    let latest_command_str = latest_hook_command.get("command")
+    let latest_command_str = latest_hook_command
+        .get("command")
         .and_then(|cmd| cmd.as_str())
         .unwrap_or("");
 
@@ -1603,12 +1649,18 @@ fn update_existing_hooks(hooks_obj: &mut serde_json::Map<String, serde_json::Val
                     for hook in hooks_array.iter_mut() {
                         if hook.get("__ccmate__").is_some() {
                             // Compare only the command string, not the entire JSON object
-                            if let Some(existing_command) = hook.get("command").and_then(|cmd| cmd.as_str()) {
+                            if let Some(existing_command) =
+                                hook.get("command").and_then(|cmd| cmd.as_str())
+                            {
                                 if existing_command != latest_command_str {
                                     // Update only the command field, preserve other properties
-                                    hook["command"] = serde_json::Value::String(latest_command_str.to_string());
+                                    hook["command"] =
+                                        serde_json::Value::String(latest_command_str.to_string());
                                     hook_updated = true;
-                                    println!("🔄 Updated {} hook command: {}", event, latest_command_str);
+                                    println!(
+                                        "🔄 Updated {} hook command: {}",
+                                        event, latest_command_str
+                                    );
                                 }
                             }
                         }
@@ -1622,7 +1674,10 @@ fn update_existing_hooks(hooks_obj: &mut serde_json::Map<String, serde_json::Val
 }
 
 /// Update or add ccmate hooks for specified events
-fn update_or_add_hooks(hooks_obj: &mut serde_json::Map<String, serde_json::Value>, events: &[&str]) -> Result<bool, String> {
+fn update_or_add_hooks(
+    hooks_obj: &mut serde_json::Map<String, serde_json::Value>,
+    events: &[&str],
+) -> Result<bool, String> {
     let latest_hook_command = get_latest_hook_command();
     let mut hook_updated = false;
 
@@ -1646,7 +1701,9 @@ fn update_or_add_hooks(hooks_obj: &mut serde_json::Map<String, serde_json::Value
             // If no ccmate hooks found, add one
             let ccmate_hook_exists = event_hooks.iter().any(|entry| {
                 if let Some(hooks_array) = entry.get("hooks").and_then(|h| h.as_array()) {
-                    hooks_array.iter().any(|hook| hook.get("__ccmate__").is_some())
+                    hooks_array
+                        .iter()
+                        .any(|hook| hook.get("__ccmate__").is_some())
                 } else {
                     false
                 }
@@ -1664,7 +1721,10 @@ fn update_or_add_hooks(hooks_obj: &mut serde_json::Map<String, serde_json::Value
             let ccmate_hook_entry = serde_json::json!({
                 "hooks": [latest_hook_command.clone()]
             });
-            hooks_obj.insert(event.to_string(), serde_json::Value::Array(vec![ccmate_hook_entry]));
+            hooks_obj.insert(
+                event.to_string(),
+                serde_json::Value::Array(vec![ccmate_hook_entry]),
+            );
             hook_updated = true;
         }
     }
@@ -1815,7 +1875,8 @@ pub async fn remove_claude_code_hook() -> Result<(), String> {
                 for entry in event_hooks.iter() {
                     if let Some(hooks_array) = entry.get("hooks").and_then(|h| h.as_array()) {
                         // Filter out hooks that have __ccmate__ key
-                        let filtered_hooks: Vec<serde_json::Value> = hooks_array.iter()
+                        let filtered_hooks: Vec<serde_json::Value> = hooks_array
+                            .iter()
                             .filter(|hook| hook.get("__ccmate__").is_none())
                             .cloned()
                             .collect();
@@ -1906,8 +1967,6 @@ pub async fn update_notification_settings(settings: NotificationSettings) -> Res
     Ok(())
 }
 
-
-
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct CommandFile {
     pub name: String,
@@ -1935,7 +1994,8 @@ pub async fn read_claude_commands() -> Result<Vec<CommandFile>, String> {
         let path = entry.path();
 
         if path.is_file() && path.extension().map(|ext| ext == "md").unwrap_or(false) {
-            let file_name = path.file_stem()
+            let file_name = path
+                .file_stem()
                 .and_then(|name| name.to_str())
                 .unwrap_or("unknown")
                 .to_string();
@@ -2016,7 +2076,8 @@ pub async fn read_claude_agents() -> Result<Vec<AgentFile>, String> {
         let path = entry.path();
 
         if path.is_file() && path.extension().map(|ext| ext == "md").unwrap_or(false) {
-            let file_name = path.file_stem()
+            let file_name = path
+                .file_stem()
                 .and_then(|name| name.to_str())
                 .unwrap_or("unknown")
                 .to_string();
@@ -2095,7 +2156,7 @@ async fn read_codex_stores_internal() -> Result<CodexStoresData, String> {
 
     let content = std::fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read codex config file: {}", e))?;
-    
+
     let data: CodexStoresData = serde_json::from_str(&content)
         .map_err(|e| format!("Failed to parse codex config file: {}", e))?;
 
@@ -2130,7 +2191,7 @@ pub async fn get_codex_stores() -> Result<Vec<CodexStore>, String> {
 #[tauri::command]
 pub async fn create_codex_store(title: String, config: Value) -> Result<CodexStore, String> {
     let mut data = read_codex_stores_internal().await?;
-    
+
     let new_store = CodexStore {
         id: nanoid::nanoid!(),
         title,
@@ -2146,13 +2207,17 @@ pub async fn create_codex_store(title: String, config: Value) -> Result<CodexSto
 }
 
 #[tauri::command]
-pub async fn update_codex_store(id: String, title: String, config: Value) -> Result<CodexStore, String> {
+pub async fn update_codex_store(
+    id: String,
+    title: String,
+    config: Value,
+) -> Result<CodexStore, String> {
     let mut data = read_codex_stores_internal().await?;
-    
+
     if let Some(store) = data.configs.iter_mut().find(|s| s.id == id) {
         store.title = title;
         store.config = config;
-        
+
         let updated_store = store.clone();
         write_codex_stores_internal(&data).await?;
         Ok(updated_store)
@@ -2164,7 +2229,7 @@ pub async fn update_codex_store(id: String, title: String, config: Value) -> Res
 #[tauri::command]
 pub async fn delete_codex_store(id: String) -> Result<(), String> {
     let mut data = read_codex_stores_internal().await?;
-    
+
     data.configs.retain(|s| s.id != id);
     write_codex_stores_internal(&data).await?;
 
@@ -2174,12 +2239,83 @@ pub async fn delete_codex_store(id: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn set_using_codex_store(id: String) -> Result<(), String> {
     let mut data = read_codex_stores_internal().await?;
-    
+    let mut selected_store: Option<CodexStore> = None;
+
     for store in &mut data.configs {
-        store.using = store.id == id;
+        if store.id == id {
+            store.using = true;
+            selected_store = Some(store.clone());
+        } else {
+            store.using = false;
+        }
     }
-    
+
     write_codex_stores_internal(&data).await?;
+
+    // If a store was selected, update the .codex directory
+    if let Some(store) = selected_store {
+        let settings = get_codex_global_settings().await?;
+
+        // Only proceed if Codex is enabled
+        if settings.enabled {
+            let root_path = std::path::PathBuf::from(&settings.root_path);
+
+            // Ensure .codex directory exists
+            if !root_path.exists() {
+                std::fs::create_dir_all(&root_path)
+                    .map_err(|e| format!("Failed to create codex root directory: {}", e))?;
+            }
+
+            let config_obj = store.config.as_object().ok_or("Invalid config format")?;
+
+            // 1. Write auth.json
+            if let Some(api_key) = config_obj.get("api_key").and_then(|v| v.as_str()) {
+                let auth_content = serde_json::json!({
+                    "OPENAI_API_KEY": api_key
+                });
+                let auth_path = root_path.join("auth.json");
+                let auth_json = serde_json::to_string_pretty(&auth_content)
+                    .map_err(|e| format!("Failed to serialize auth.json: {}", e))?;
+                std::fs::write(auth_path, auth_json)
+                    .map_err(|e| format!("Failed to write auth.json: {}", e))?;
+            }
+
+            // 2. Write config.toml
+            let _platform = config_obj
+                .get("platform")
+                .and_then(|v| v.as_str())
+                .unwrap_or("custom");
+            let model = config_obj
+                .get("model")
+                .and_then(|v| v.as_str())
+                .unwrap_or("gpt-5-codex");
+            let url = config_obj
+                .get("url")
+                .and_then(|v| v.as_str())
+                .unwrap_or("https://api.lightai.io/v1");
+            let name = store.title.clone(); // Use configuration name as provider name
+
+            let config_toml_content = format!(
+                r#"model_provider = "{name}"
+model = "{model}"
+model_reasoning_effort = "high"
+disable_response_storage = true
+windows_wsl_setup_acknowledged = true
+
+[model_providers.{name}]
+name = "{name}"
+base_url = "{url}"
+wire_api = "responses"
+requires_openai_auth = true
+"#
+            );
+
+            let config_toml_path = root_path.join("config.toml");
+            std::fs::write(config_toml_path, config_toml_content)
+                .map_err(|e| format!("Failed to write config.toml: {}", e))?;
+        }
+    }
+
     Ok(())
 }
 
@@ -2199,7 +2335,7 @@ impl Default for CodexGlobalSettings {
     fn default() -> Self {
         let home = dirs::home_dir().unwrap_or_default();
         let root_path = home.join(".codex").to_string_lossy().to_string();
-        
+
         Self {
             enabled: true,
             root_path,
@@ -2220,7 +2356,7 @@ pub async fn get_codex_global_settings() -> Result<CodexGlobalSettings, String> 
 
     let content = std::fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read codex settings: {}", e))?;
-    
+
     let settings: CodexGlobalSettings = serde_json::from_str(&content)
         .map_err(|e| format!("Failed to parse codex settings: {}", e))?;
 
@@ -2245,4 +2381,482 @@ pub async fn update_codex_global_settings(settings: CodexGlobalSettings) -> Resu
         .map_err(|e| format!("Failed to write codex settings: {}", e))?;
 
     Ok(())
+}
+
+#[derive(serde::Serialize)]
+pub struct ConnectionStatus {
+    pub success: bool,
+    pub latency_ms: u64,
+    pub message: Option<String>,
+}
+
+#[tauri::command]
+pub async fn check_codex_connection(
+    url: String,
+    api_key: Option<String>,
+    _model: Option<String>,
+) -> Result<ConnectionStatus, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let start = std::time::Instant::now();
+
+    // Try to hit the /models endpoint as a lightweight check
+    // Adjust the URL to ensure it ends with /models if it's a base URL
+    // Common OpenAI compatible endpoints: {base_url}/models
+    let check_url = if url.ends_with("/v1") {
+        format!("{}/models", url)
+    } else if url.ends_with("/v1/") {
+        format!("{}models", url)
+    } else {
+        // Heuristic: if it doesn't have v1, try appending v1/models, or just models if user provided full path
+        // For now, let's assume user provided base URL like https://api.example.com/v1
+        if url.ends_with('/') {
+            format!("{}models", url)
+        } else {
+            format!("{}/models", url)
+        }
+    };
+
+    let mut request = client.get(&check_url);
+
+    if let Some(key) = api_key {
+        if !key.is_empty() {
+            request = request.header("Authorization", format!("Bearer {}", key));
+        }
+    }
+
+    match request.send().await {
+        Ok(response) => {
+            let latency = start.elapsed().as_millis() as u64;
+            if response.status().is_success() {
+                Ok(ConnectionStatus {
+                    success: true,
+                    latency_ms: latency,
+                    message: None,
+                })
+            } else {
+                Ok(ConnectionStatus {
+                    success: false,
+                    latency_ms: latency,
+                    message: Some(format!("HTTP {}", response.status())),
+                })
+            }
+        }
+        Err(e) => Ok(ConnectionStatus {
+            success: false,
+            latency_ms: 0,
+            message: Some(e.to_string()),
+        }),
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct NetworkInfo {
+    pub interface_alias: String,
+    pub local_ip: String,
+    pub prefix_length: u8,
+    pub gateway: String,
+    pub dns: String,
+}
+
+#[tauri::command]
+pub async fn check_is_admin() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        // "net session" returns 0 exit code only if running with admin privileges
+        let output = Command::new("net").args(&["session"]).output();
+
+        match output {
+            Ok(o) => o.status.success(),
+            Err(_) => false,
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
+}
+
+#[tauri::command]
+pub async fn get_system_network_info() -> Result<NetworkInfo, String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+
+        println!("[DEBUG] Getting network info via ipconfig...");
+
+        // Execute ipconfig /all to get detailed network information
+        let output = Command::new("ipconfig")
+            .arg("/all")
+            .output()
+            .map_err(|e| format!("Failed to execute ipconfig: {}", e))?;
+
+        if !output.status.success() {
+            return Err("ipconfig command failed".to_string());
+        }
+
+        // Parse output - ipconfig outputs in system encoding (GBK on Chinese Windows)
+        let stdout = if let Ok(s) = String::from_utf8(output.stdout.clone()) {
+            s
+        } else {
+            // Try GBK encoding for Chinese Windows
+            encoding_rs::GBK.decode(&output.stdout).0.to_string()
+        };
+
+        println!("[DEBUG] ipconfig output received, parsing...");
+
+        // Parse ipconfig output
+        let mut current_adapter: Option<String> = None;
+        let mut adapter_ip: Option<String> = None;
+        let mut adapter_gateway: Option<String> = None;
+        let mut adapter_dns: Vec<String> = Vec::new();
+        let mut found_adapter: Option<(String, String, String, String)> = None;
+
+        for line in stdout.lines() {
+            let trimmed = line.trim();
+
+            // Detect adapter name (non-indented lines that end with colon)
+            if !line.starts_with(' ') && !line.starts_with('\t') && trimmed.ends_with(':') {
+
+                // Save previous adapter if it has both IP and Gateway
+                if let (Some(name), Some(ip), Some(gw)) = (&current_adapter, &adapter_ip, &adapter_gateway) {
+                    let dns = if adapter_dns.is_empty() {
+                        "8.8.8.8".to_string()
+                    } else {
+                        adapter_dns.join(",")
+                    };
+
+                    println!("[DEBUG] Found valid adapter: {} (IP: {}, Gateway: {})", name, ip, gw);
+                    found_adapter = Some((name.clone(), ip.clone(), gw.clone(), dns));
+                    break; // Use first valid adapter
+                }
+
+                // Extract adapter name - remove "以太网适配器", "Ethernet adapter" etc. prefixes
+                let adapter_line = trimmed.trim_end_matches(':');
+                let adapter_name = if let Some(pos) = adapter_line.rfind(' ') {
+                    // Take the part after the last space (e.g., "以太网适配器 以太网" -> "以太网")
+                    adapter_line[pos + 1..].trim().to_string()
+                } else {
+                    adapter_line.to_string()
+                };
+
+                current_adapter = Some(adapter_name.clone());
+                adapter_ip = None;
+                adapter_gateway = None;
+                adapter_dns.clear();
+
+                println!("[DEBUG] Found adapter: {} (parsed from: {})", adapter_name, trimmed);
+                continue;
+            }
+
+            // Parse IPv4 address
+            if trimmed.to_lowercase().contains("ipv4") && trimmed.contains(':') {
+                if let Some(ip_part) = trimmed.split(':').nth(1) {
+                    let ip = ip_part.trim().trim_end_matches("(Preferred)").trim().trim_end_matches("(首选)").trim();
+                    // Validate IPv4 format
+                    if ip.split('.').count() == 4 && ip.chars().all(|c| c.is_numeric() || c == '.') {
+                        adapter_ip = Some(ip.to_string());
+                        println!("[DEBUG]   - IPv4: {}", ip);
+                    }
+                }
+            }
+
+            // Parse Default Gateway
+            if trimmed.to_lowercase().contains("default gateway") ||
+               trimmed.to_lowercase().contains("默认网关") {
+                if let Some(gw_part) = trimmed.split(':').nth(1) {
+                    let gw = gw_part.trim();
+                    if !gw.is_empty() && gw.split('.').count() == 4 {
+                        adapter_gateway = Some(gw.to_string());
+                        println!("[DEBUG]   - Gateway: {}", gw);
+                    }
+                }
+            }
+
+            // Parse DNS Servers
+            if trimmed.to_lowercase().contains("dns servers") ||
+               trimmed.to_lowercase().contains("dns 服务器") {
+                if let Some(dns_part) = trimmed.split(':').nth(1) {
+                    let dns = dns_part.trim();
+                    if !dns.is_empty() && dns.split('.').count() == 4 {
+                        adapter_dns.push(dns.to_string());
+                        println!("[DEBUG]   - DNS: {}", dns);
+                    }
+                }
+            } else if !adapter_dns.is_empty() && trimmed.split('.').count() == 4 &&
+                      trimmed.chars().all(|c| c.is_numeric() || c == '.') {
+                // Additional DNS server on separate line
+                adapter_dns.push(trimmed.to_string());
+                println!("[DEBUG]   - DNS: {}", trimmed);
+            }
+        }
+
+        // Check last adapter
+        if found_adapter.is_none() {
+            if let (Some(name), Some(ip), Some(gw)) = (current_adapter, adapter_ip, adapter_gateway) {
+                let dns = if adapter_dns.is_empty() {
+                    "8.8.8.8".to_string()
+                } else {
+                    adapter_dns.join(",")
+                };
+
+                println!("[DEBUG] Using last adapter: {} (IP: {}, Gateway: {})", name, ip, gw);
+                found_adapter = Some((name, ip, gw, dns));
+            }
+        }
+
+        if let Some((name, ip, gateway, dns)) = found_adapter {
+            let info = NetworkInfo {
+                interface_alias: name,
+                local_ip: ip,
+                prefix_length: 24, // Default to /24, can't easily get from ipconfig
+                gateway,
+                dns,
+            };
+
+            println!("[SUCCESS] Network info retrieved: {:?}", info);
+            Ok(info)
+        } else {
+            Err("No active network adapter with IP and Gateway found".to_string())
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Err("Network management is only supported on Windows".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_public_ip(url: String) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to request public IP: {}", e))?;
+
+    if response.status().is_success() {
+        let text = response
+            .text()
+            .await
+            .map_err(|e| format!("Failed to read response: {}", e))?;
+        Ok(text.trim().to_string())
+    } else {
+        Err(format!("Request failed with status: {}", response.status()))
+    }
+}
+
+#[tauri::command]
+pub async fn set_system_network_node(
+    interface_alias: String,
+    ip: String,
+    prefix_length: u8,
+    gateway: String,
+    dns: String,
+) -> Result<NetworkInfo, String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+
+        println!("[DEBUG] ========== Starting network node switch ==========");
+        println!("[DEBUG] Interface: {}", interface_alias);
+        println!("[DEBUG] IP: {}", ip);
+        println!("[DEBUG] Prefix Length: {}", prefix_length);
+        println!("[DEBUG] Gateway: {}", gateway);
+        println!("[DEBUG] DNS: {}", dns);
+
+        // Check admin privileges first
+        println!("[DEBUG] Checking administrator privileges...");
+        let check_admin = Command::new("net")
+            .args(&["session"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+
+        println!("[DEBUG] Admin check result: {}", check_admin);
+
+        if !check_admin {
+            let err_msg = "Administrator privileges are required to change network settings.";
+            println!("[ERROR] {}", err_msg);
+            return Err(err_msg.to_string());
+        }
+
+        // Calculate subnet mask from prefix length
+        let subnet_mask = match prefix_length {
+            24 => "255.255.255.0",
+            16 => "255.255.0.0",
+            8 => "255.0.0.0",
+            _ => "255.255.255.0", // Default to /24
+        };
+
+        println!("[DEBUG] Using netsh commands...");
+
+        // Step 1: Set IP address with static configuration
+        println!("[DEBUG] Step 1: Setting IP address...");
+        let set_ip_output = Command::new("netsh")
+            .args(&[
+                "interface",
+                "ipv4",
+                "set",
+                "address",
+                &format!("name={}", interface_alias),
+                "source=static",
+                &format!("addr={}", ip),
+                &format!("mask={}", subnet_mask),
+                &format!("gateway={}", gateway),
+                "gwmetric=1"
+            ])
+            .output()
+            .map_err(|e| {
+                let err_msg = format!("Failed to execute netsh (set IP): {}", e);
+                println!("[ERROR] {}", err_msg);
+                err_msg
+            })?;
+
+        let set_ip_stdout = String::from_utf8_lossy(&set_ip_output.stdout);
+        let set_ip_stderr = String::from_utf8_lossy(&set_ip_output.stderr);
+
+        println!("[DEBUG] Set IP exit code: {}", set_ip_output.status.code().unwrap_or(-1));
+        if !set_ip_stdout.is_empty() {
+            println!("[DEBUG] Set IP STDOUT: {}", set_ip_stdout);
+        }
+        if !set_ip_stderr.is_empty() {
+            println!("[DEBUG] Set IP STDERR: {}", set_ip_stderr);
+        }
+
+        if !set_ip_output.status.success() {
+            let err_msg = format!(
+                "Failed to set IP address (exit code: {}): {}",
+                set_ip_output.status.code().unwrap_or(-1),
+                set_ip_stderr
+            );
+            println!("[ERROR] {}", err_msg);
+            return Err(err_msg);
+        }
+
+        // Step 2: Set DNS servers
+        println!("[DEBUG] Step 2: Setting DNS servers...");
+        let dns_servers: Vec<&str> = dns.split(',').collect();
+
+        // Set primary DNS
+        if let Some(primary_dns) = dns_servers.first() {
+            let set_dns_output = Command::new("netsh")
+                .args(&[
+                    "interface",
+                    "ipv4",
+                    "set",
+                    "dns",
+                    &format!("name={}", interface_alias),
+                    "source=static",
+                    &format!("addr={}", primary_dns),
+                    "register=primary"
+                ])
+                .output()
+                .map_err(|e| {
+                    let err_msg = format!("Failed to execute netsh (set DNS): {}", e);
+                    println!("[ERROR] {}", err_msg);
+                    err_msg
+                })?;
+
+            let set_dns_stdout = String::from_utf8_lossy(&set_dns_output.stdout);
+            let set_dns_stderr = String::from_utf8_lossy(&set_dns_output.stderr);
+
+            println!("[DEBUG] Set DNS exit code: {}", set_dns_output.status.code().unwrap_or(-1));
+            if !set_dns_stdout.is_empty() {
+                println!("[DEBUG] Set DNS STDOUT: {}", set_dns_stdout);
+            }
+            if !set_dns_stderr.is_empty() {
+                println!("[DEBUG] Set DNS STDERR: {}", set_dns_stderr);
+            }
+
+            if !set_dns_output.status.success() {
+                let err_msg = format!(
+                    "Failed to set DNS (exit code: {}): {}",
+                    set_dns_output.status.code().unwrap_or(-1),
+                    set_dns_stderr
+                );
+                println!("[ERROR] {}", err_msg);
+                return Err(err_msg);
+            }
+        }
+
+        // Add additional DNS servers if present
+        for (index, dns_server) in dns_servers.iter().skip(1).enumerate() {
+            println!("[DEBUG] Adding alternate DNS server #{}: {}", index + 1, dns_server);
+            let _ = Command::new("netsh")
+                .args(&[
+                    "interface",
+                    "ipv4",
+                    "add",
+                    "dns",
+                    &format!("name={}", interface_alias),
+                    &format!("addr={}", dns_server),
+                    &format!("index={}", index + 2)
+                ])
+                .output();
+        }
+
+        println!("[SUCCESS] Network node switched successfully!");
+        println!("[DEBUG] ========== Network node switch completed ==========");
+
+        // Wait for network to stabilize
+        println!("[DEBUG] Waiting 2 seconds for network to stabilize...");
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+        // Verify network configuration by reading it back
+        println!("[DEBUG] Verifying new network configuration...");
+        match get_system_network_info().await {
+            Ok(network_info) => {
+                println!("[SUCCESS] Network verification successful: {:?}", network_info);
+                Ok(network_info)
+            }
+            Err(e) => {
+                println!("[WARN] Network verification failed: {}", e);
+                // Still return success with the expected values
+                Ok(NetworkInfo {
+                    interface_alias,
+                    local_ip: ip,
+                    prefix_length,
+                    gateway,
+                    dns,
+                })
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Err("Network management is only supported on Windows".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn check_site_latency(url: String) -> Result<u64, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let start = std::time::Instant::now();
+    let response = client.head(&url).send().await;
+
+    // If HEAD fails (some sites block it), try GET
+    let result = match response {
+        Ok(_) => Ok(()),
+        Err(_) => client.get(&url).send().await.map(|_| ()),
+    };
+
+    match result {
+        Ok(_) => Ok(start.elapsed().as_millis() as u64),
+        Err(e) => Err(format!("Failed to connect: {}", e)),
+    }
 }

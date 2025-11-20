@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import { RouteWrapper } from "./components/RouteWrapper";
 import { AgentsPage } from "./pages/AgentsPage";
 import { CodexPage } from "./pages/CodexPage";
+import { CodexConfigPage } from "./pages/CodexConfigPage";
 import { CodexSettingsPage } from "./pages/CodexSettingsPage";
 import { CommandsPage } from "./pages/CommandsPage";
 import { ConfigEditorPage } from "./pages/ConfigEditorPage";
@@ -47,6 +48,22 @@ const router = createBrowserRouter([
 				element: (
 					<RouteWrapper>
 						<CodexPage />
+					</RouteWrapper>
+				),
+			},
+			{
+				path: "codex/new",
+				element: (
+					<RouteWrapper>
+						<CodexConfigPage />
+					</RouteWrapper>
+				),
+			},
+			{
+				path: "codex/edit/:id",
+				element: (
+					<RouteWrapper>
+						<CodexConfigPage />
 					</RouteWrapper>
 				),
 			},
