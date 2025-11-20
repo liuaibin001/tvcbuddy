@@ -219,7 +219,8 @@ pub fn run() {
             set_system_network_node,
             check_site_latency,
             get_public_ip,
-            check_is_admin
+            check_is_admin,
+            get_system_env_config
         ])
         .on_window_event(|_window, _event| {
             #[cfg(target_os = "macos")]

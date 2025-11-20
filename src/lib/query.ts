@@ -769,3 +769,21 @@ const rebuildTrayMenu = async () => {
 	}
 };
 
+// System Environment Config hooks
+export interface SystemEnvConfig {
+	has_config: boolean;
+	base_url?: string;
+	auth_token?: string;
+	main_model?: string;
+	haiku_model?: string;
+	sonnet_model?: string;
+	opus_model?: string;
+}
+
+export const useSystemEnvConfig = () => {
+	return useQuery({
+		queryKey: ["system-env-config"],
+		queryFn: () => invoke<SystemEnvConfig>("get_system_env_config"),
+	});
+};
+

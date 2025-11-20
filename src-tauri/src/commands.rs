@@ -2791,3 +2791,32 @@ pub async fn check_site_latency(url: String) -> Result<u64, String> {
         Err(e) => Err(format!("Failed to connect: {}", e)),
     }
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct SystemEnvConfig {
+    pub has_config: bool,
+    pub base_url: Option<String>,
+    pub auth_token: Option<String>,
+    pub main_model: Option<String>,
+    pub haiku_model: Option<String>,
+    pub sonnet_model: Option<String>,
+    pub opus_model: Option<String>,
+}
+
+#[tauri::command]
+pub fn get_system_env_config() -> SystemEnvConfig {
+    let base_url = std::env::var("ANTHROPIC_BASE_URL").ok();
+    let auth_token = std::env::var("ANTHROPIC_AUTH_TOKEN").ok();
+
+    let has_config = base_url.is_some() && auth_token.is_some();
+
+    SystemEnvConfig {
+        has_config,
+        base_url,
+        auth_token,
+        main_model: std::env::var("ANTHROPIC_MODEL").ok(),
+        haiku_model: std::env::var("ANTHROPIC_DEFAULT_HAIKU_MODEL").ok(),
+        sonnet_model: std::env::var("ANTHROPIC_DEFAULT_SONNET_MODEL").ok(),
+        opus_model: std::env::var("ANTHROPIC_DEFAULT_OPUS_MODEL").ok(),
+    }
+}

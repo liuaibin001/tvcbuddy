@@ -29,6 +29,7 @@ import {
 	useResetToOriginalConfig,
 	useSetCurrentConfig,
 	useStores,
+	useSystemEnvConfig,
 } from "../lib/query";
 
 export function ConfigSwitcherPage() {
@@ -42,6 +43,7 @@ export function ConfigSwitcherPage() {
 function ConfigStores() {
 	const { t } = useTranslation();
 	const { data: stores } = useStores();
+	const { data: systemEnvConfig } = useSystemEnvConfig();
 	const setCurrentStoreMutation = useSetCurrentConfig();
 	const resetToOriginalMutation = useResetToOriginalConfig();
 	const deleteConfigMutation = useDeleteConfig();
@@ -205,6 +207,37 @@ function ConfigStores() {
 							</p>
 						</div>
 					</div>
+
+					{/* System Default Config (from environment variables) */}
+					{systemEnvConfig?.has_config && (
+						<div
+							className="group relative flex items-center gap-3 rounded-lg border border-muted bg-card p-3 transition-all duration-200 cursor-default"
+						>
+							{/* Icon */}
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-muted bg-muted/50 text-muted-foreground">
+								<ServerIcon size={18} />
+							</div>
+
+							{/* Content */}
+							<div className="flex-1 min-w-0 flex flex-col justify-center">
+								<h4 className="font-medium text-sm truncate text-foreground">
+									系统默认配置
+								</h4>
+								{systemEnvConfig.base_url && (
+									<p className="text-xs text-muted-foreground mt-0.5 truncate" title={systemEnvConfig.base_url}>
+										{systemEnvConfig.base_url}
+									</p>
+								)}
+							</div>
+
+							{/* Read-only indicator */}
+							<div className="absolute top-2 right-2">
+								<span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+									只读
+								</span>
+							</div>
+						</div>
+					)}
 
 					{/* Claude Original Config */}
 					<div
