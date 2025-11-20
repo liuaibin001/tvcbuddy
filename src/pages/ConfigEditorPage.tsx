@@ -59,7 +59,7 @@ export function ConfigEditorPage() {
 	const { storeId } = useParams();
 	const isEditMode = !!storeId && storeId !== "new";
 
-	const { data: existingStore } = useStore(isEditMode ? storeId : "");
+	const { data: existingStore, isLoading } = useStore(isEditMode ? storeId : "");
 	const createConfigMutation = useCreateConfig();
 	const updateConfigMutation = useUpdateConfig();
 
@@ -137,7 +137,7 @@ export function ConfigEditorPage() {
 		};
 
 		try {
-			if (isEditMode && storeId) {
+			if (isEditMode && storeId && storeId !== "new") {
 				await updateConfigMutation.mutateAsync({
 					storeId,
 					title: name,
@@ -165,6 +165,18 @@ export function ConfigEditorPage() {
 		}),
 		[provider, url, mainModel, apiKey]
 	);
+
+	// Show loading state when fetching existing config
+	if (isEditMode && isLoading) {
+		return (
+			<div className="h-screen bg-background text-foreground flex items-center justify-center">
+				<div className="text-center">
+					<div className="text-lg font-medium">Loading configuration...</div>
+					<div className="text-sm text-muted-foreground mt-2">Please wait</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">

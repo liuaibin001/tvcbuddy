@@ -121,9 +121,10 @@ export const useStores = (options?: { storeId?: string }) => {
 };
 
 export const useStore = (storeId: string) => {
-	return useSuspenseQuery({
+	return useQuery({
 		queryKey: ["store", storeId],
 		queryFn: () => invoke<ConfigStore>("get_store", { storeId }),
+		enabled: !!storeId && storeId !== "new",
 	});
 };
 
