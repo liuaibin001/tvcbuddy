@@ -89,65 +89,6 @@ function ConfigStores() {
 		}
 	};
 
-	if (stores.length === 0) {
-		return (
-			<div
-				className="flex justify-center items-center h-screen"
-				data-tauri-drag-region
-			>
-				<div className="flex flex-col items-center gap-2">
-					<Button variant="ghost" onClick={onCreateStore} className="">
-						<PlusIcon size={14} />
-						{t("configSwitcher.createConfig")}
-					</Button>
-
-					<p className="text-sm text-muted-foreground" data-tauri-drag-region>
-						{t("configSwitcher.description")}
-					</p>
-
-					<div className="mt-4 space-y-2">
-						<GLMDialog
-							trigger={
-								<Button
-									variant="ghost"
-									className="text-muted-foreground text-sm"
-									size="sm"
-								>
-									<ZAI />
-									{t("glm.useZhipuGlm")}
-								</Button>
-							}
-						/>
-						<MiniMaxDialog
-							trigger={
-								<Button
-									variant="ghost"
-									className="text-muted-foreground text-sm"
-									size="sm"
-								>
-									<Minimax />
-									{t("minimax.useMiniMax")}
-								</Button>
-							}
-						/>
-						<KimiDialog
-							trigger={
-								<Button
-									variant="ghost"
-									className="text-muted-foreground text-sm"
-									size="sm"
-								>
-									<Kimi />
-									{t("kimi.useKimi")}
-								</Button>
-							}
-						/>
-					</div>
-				</div>
-			</div>
-		);
-	}
-
 	return (
 		<>
 			<div
