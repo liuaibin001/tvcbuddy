@@ -190,7 +190,7 @@ function ConfigStores() {
 
 							{/* Active Indicator */}
 							{isSystemConfigActive && (
-								<div className="absolute top-2 right-2">
+								<div className="absolute top-2 right-2 pointer-events-none">
 									<span className="relative flex h-2 w-2">
 										<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
 										<span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
@@ -198,20 +198,22 @@ function ConfigStores() {
 								</div>
 							)}
 
-							{/* Edit button (hover) */}
-							<div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all bg-background/95 backdrop-blur shadow-sm border rounded-md p-1">
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-7 w-7 hover:text-primary"
-									onClick={(e) => {
-										e.stopPropagation();
-										handleSystemConfigClick();
-									}}
-								>
-									<PencilLineIcon size={14} />
-								</Button>
-							</div>
+							{/* Edit button (hover) - only show when not active */}
+							{!isSystemConfigActive && (
+								<div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all bg-background/95 backdrop-blur shadow-sm border rounded-md p-1 pointer-events-auto">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 hover:text-primary"
+										onClick={(e) => {
+											e.stopPropagation();
+											handleSystemConfigClick();
+										}}
+									>
+										<PencilLineIcon size={14} />
+									</Button>
+								</div>
+							)}
 						</div>
 					)}
 
