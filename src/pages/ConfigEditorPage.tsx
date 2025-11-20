@@ -65,7 +65,7 @@ export function ConfigEditorPage() {
 
 	// State
 	const [provider, setProvider] = useState<ProviderType>("zhipu");
-	const [name, setName] = useState("");
+	const [name, setName] = useState("智谱");
 	const [url, setUrl] = useState("https://open.bigmodel.cn/api/anthropic");
 	const [apiKey, setApiKey] = useState("");
 	const [mainModel, setMainModel] = useState("glm-4.6");
@@ -105,15 +105,13 @@ export function ConfigEditorPage() {
 		setProvider(p);
 		const preset = PROVIDER_PRESETS[p];
 
-		// Only apply defaults if NOT in edit mode
-		if (!isEditMode) {
-			setName(preset.name || "");
-			setUrl(preset.url || "");
-			setMainModel(preset.mainModel || "");
-			setHaikuModel(preset.haikuModel || "");
-			setSonnetModel(preset.sonnetModel || "");
-			setOpusModel(preset.opusModel || "");
-		}
+		// Apply preset defaults when switching provider
+		setName(preset.name || "");
+		setUrl(preset.url || "");
+		setMainModel(preset.mainModel || "");
+		setHaikuModel(preset.haikuModel || "");
+		setSonnetModel(preset.sonnetModel || "");
+		setOpusModel(preset.opusModel || "");
 	};
 
 	const handleSave = async () => {
