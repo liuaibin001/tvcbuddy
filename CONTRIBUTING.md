@@ -24,8 +24,7 @@ npm install -g pnpm
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/djyde/ccconfig.git
-cd ccconfig
+
 ```
 
 2. **Install dependencies**
@@ -162,7 +161,7 @@ All contributions go through code review to ensure:
 - Proper testing and documentation
 - Security considerations
 
-Check the [GitHub Issues](https://github.com/djyde/ccconfig/issues) for specific items that need help.
+Check the [GitHub Issues]() for specific items that need help.
 
 ## 🙏 Recognition
 
@@ -172,7 +171,7 @@ Contributors are recognized in:
 - README contributors section (for substantial contributions)
 - GitHub contributor statistics
 
-Thank you for contributing to CC Mate! 🎉
+Thank you for contributing to TVC BUDDY! 🎉
 
 ---
 
