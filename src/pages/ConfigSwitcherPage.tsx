@@ -51,10 +51,23 @@ function ConfigStores() {
 
 	const isOriginalConfigActive = !stores.some((store) => store.using);
 
+	// Check if system env config already exists in saved configs
+	const systemConfigExists = systemEnvConfig?.has_config && stores.some((store) => {
+		const env = store.settings?.env as Record<string, string> | undefined;
+		return (
+			env?.ANTHROPIC_BASE_URL === systemEnvConfig.base_url &&
+			env?.ANTHROPIC_AUTH_TOKEN === systemEnvConfig.auth_token
+		);
+	});
+
 	const handleStoreClick = (storeId: string, isCurrentStore: boolean) => {
 		if (!isCurrentStore) {
 			setCurrentStoreMutation.mutate(storeId);
 		}
+	};
+
+	const handleSystemConfigClick = () => {
+		navigate("/edit/system-default");
 	};
 
 	const handleOriginalConfigClick = () => {
@@ -209,9 +222,10 @@ function ConfigStores() {
 					</div>
 
 					{/* System Default Config (from environment variables) */}
-					{systemEnvConfig?.has_config && (
+					{systemEnvConfig?.has_config && !systemConfigExists && (
 						<div
-							className="group relative flex items-center gap-3 rounded-lg border border-muted bg-card p-3 transition-all duration-200 cursor-default"
+							onClick={handleSystemConfigClick}
+							className="group relative flex items-center gap-3 rounded-lg border border-muted bg-card p-3 transition-all duration-200 cursor-pointer hover:shadow-sm hover:border-muted-foreground/30"
 						>
 							{/* Icon */}
 							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-muted bg-muted/50 text-muted-foreground">
@@ -230,11 +244,19 @@ function ConfigStores() {
 								)}
 							</div>
 
-							{/* Read-only indicator */}
-							<div className="absolute top-2 right-2">
-								<span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-									只读
-								</span>
+							{/* Edit button (hover) */}
+							<div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all bg-background/95 backdrop-blur shadow-sm border rounded-md p-1">
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-7 w-7 hover:text-primary"
+									onClick={(e) => {
+										e.stopPropagation();
+										handleSystemConfigClick();
+									}}
+								>
+									<PencilLineIcon size={14} />
+								</Button>
 							</div>
 						</div>
 					)}

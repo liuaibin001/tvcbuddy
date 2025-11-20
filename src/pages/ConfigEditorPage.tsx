@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { useCreateConfig, useStore, useUpdateConfig } from "@/lib/query";
+import { useCreateConfig, useStore, useUpdateConfig, useSystemEnvConfig } from "@/lib/query";
 import { ArrowLeftIcon, CheckCircle2, Code2, Globe, SaveIcon, Server, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -57,9 +57,11 @@ const PROVIDER_PRESETS: Record<ProviderType, Partial<ProviderConfig>> = {
 export function ConfigEditorPage() {
 	const navigate = useNavigate();
 	const { storeId } = useParams();
-	const isEditMode = !!storeId && storeId !== "new";
+	const isEditMode = !!storeId && storeId !== "new" && storeId !== "system-default";
+	const isSystemDefault = storeId === "system-default";
 
 	const { data: existingStore, isLoading } = useStore(isEditMode ? storeId : "");
+	const { data: systemEnvConfig } = useSystemEnvConfig();
 	const createConfigMutation = useCreateConfig();
 	const updateConfigMutation = useUpdateConfig();
 
@@ -100,6 +102,32 @@ export function ConfigEditorPage() {
 		}
 	}, [isEditMode, existingStore]);
 
+	// Load system default config from environment variables
+	useEffect(() => {
+		if (isSystemDefault && systemEnvConfig?.has_config) {
+			setName("系统默认配置");
+
+			// Determine provider type based on URL
+			const baseUrl = systemEnvConfig.base_url || "";
+			if (baseUrl.includes("bigmodel.cn")) {
+				setProvider("zhipu");
+			} else if (baseUrl.includes("tvc-mall.com")) {
+				setProvider("tvc");
+			} else if (baseUrl.includes("moonshot.cn")) {
+				setProvider("kimi");
+			} else {
+				setProvider("custom");
+			}
+
+			setUrl(systemEnvConfig.base_url || "");
+			setApiKey(systemEnvConfig.auth_token || "");
+			setMainModel(systemEnvConfig.main_model || "");
+			setHaikuModel(systemEnvConfig.haiku_model || "");
+			setSonnetModel(systemEnvConfig.sonnet_model || "");
+			setOpusModel(systemEnvConfig.opus_model || "");
+		}
+	}, [isSystemDefault, systemEnvConfig]);
+
 	// Handle provider selection
 	const handleProviderSelect = (p: ProviderType) => {
 		setProvider(p);
@@ -137,7 +165,7 @@ export function ConfigEditorPage() {
 		};
 
 		try {
-			if (isEditMode && storeId && storeId !== "new") {
+			if (isEditMode && storeId && storeId !== "new" && storeId !== "system-default") {
 				await updateConfigMutation.mutateAsync({
 					storeId,
 					title: name,
@@ -186,7 +214,9 @@ export function ConfigEditorPage() {
 					<ArrowLeftIcon size={20} />
 				</Button>
 				<div className="flex flex-col">
-					<h1 className="text-lg font-semibold leading-none">{isEditMode ? "Edit Configuration" : "New Configuration"}</h1>
+					<h1 className="text-lg font-semibold leading-none">
+						{isEditMode ? "Edit Configuration" : isSystemDefault ? "保存系统默认配置" : "New Configuration"}
+					</h1>
 					<span className="text-xs text-muted-foreground mt-1">Configure your Claude AI provider</span>
 				</div>
 			</header>
@@ -335,7 +365,7 @@ export function ConfigEditorPage() {
 					<div className="flex items-center gap-4 pt-4">
 						<Button onClick={handleSave} className="gap-2">
 							<SaveIcon size={16} />
-							{isEditMode ? "Update Configuration" : "Save Configuration"}
+							{isEditMode ? "Update Configuration" : isSystemDefault ? "保存配置" : "Save Configuration"}
 						</Button>
 						<Button variant="ghost" onClick={() => navigate("/claude")}>
 							Cancel
