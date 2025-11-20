@@ -1,10 +1,8 @@
 import { getVersion } from "@tauri-apps/api/app";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { DownloadIcon, ExternalLinkIcon, RotateCwIcon } from "lucide-react";
+import { DownloadIcon, RotateCwIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FaXTwitter } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import {
 	Select,
@@ -132,36 +130,6 @@ export function SettingsPage() {
 							{updateInfo.body}
 						</p>
 					)}
-				</div>
-
-				<div>
-					<label className="block text-sm font-medium mb-2 mx-2">
-						{t("settings.contact")}
-					</label>
-					<div className="flex items-center gap-2">
-						<Button
-							onClick={(_) => {
-								openUrl("https://github.com/djyde/ccmate-release/issues");
-							}}
-							variant="outline"
-							size="sm"
-							className="text-sm"
-						>
-							<ExternalLinkIcon />
-							{t("settings.reportIssue")}
-						</Button>
-
-						<Button
-							onClick={(_) => {
-								openUrl("https://x.com/randyloop");
-							}}
-							variant="ghost"
-							size="sm"
-							className="text-sm"
-						>
-							<FaXTwitter />
-						</Button>
-					</div>
 				</div>
 			</div>
 		</div>
