@@ -1,4 +1,4 @@
-# TVCBuddy (CC Mate) 🚀
+# TVCBuddy  🚀
 
 <div align="center">
 
