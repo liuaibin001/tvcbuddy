@@ -92,7 +92,7 @@
 #### Windows
 ```bash
 # 下载 .msi 安装包
-https://github.com/liuaibin001/tvcbuddy/releases/latest/download/TVCBuddy_0.3.9_x64_en-US.msi
+https://github.com/liuaibin001/tvcbuddy/releases/latest/download/TVCBuddy_1.0.1_x64_en-US.msi
 
 # 运行安装程序并跟随提示安装
 ```
@@ -111,13 +111,13 @@ https://github.com/liuaibin001/tvcbuddy/releases/latest/download/TVCBuddy_aarch6
 #### Linux
 ```bash
 # Debian/Ubuntu (.deb)
-wget https://github.com/liuaibin001/tvcbuddy/releases/latest/download/tvcbuddy_0.3.9_amd64.deb
-sudo dpkg -i tvcbuddy_0.3.9_amd64.deb
+wget https://github.com/liuaibin001/tvcbuddy/releases/latest/download/tvcbuddy_1.0.1_amd64.deb
+sudo dpkg -i tvcbuddy_1.0.1_amd64.deb
 
 # AppImage (通用)
-wget https://github.com/liuaibin001/tvcbuddy/releases/latest/download/tvcbuddy_0.3.9_amd64.AppImage
-chmod +x tvcbuddy_0.3.9_amd64.AppImage
-./tvcbuddy_0.3.9_amd64.AppImage
+wget https://github.com/liuaibin001/tvcbuddy/releases/latest/download/tvcbuddy_1.0.1_amd64.AppImage
+chmod +x tvcbuddy_1.0.1_amd64.AppImage
+./tvcbuddy_1.0.1_amd64.AppImage
 ```
 
 ### 首次运行
@@ -216,7 +216,7 @@ cargo check
 
 ```bash
 # 使用自动化脚本
-pnpm release 0.4.0
+pnpm release 1.0.2
 
 # 或查看完整文档
 # docs/RELEASE_GUIDE.md
@@ -372,20 +372,20 @@ C:\ProgramData\ClaudeCode\
 
 ---
 
-## 📊 功能对比
+## 📊 功能清单
 
-| 功能 | TVCBuddy | 原版 CC Mate |
-|------|----------|-------------|
-| 多配置管理 | ✅ | ✅ |
-| MCP 服务器 | ✅ | ✅ |
-| 使用统计 | ✅ | ✅ |
-| 智能体管理 | ✅ | ✅ |
-| Codex 知识库 | ✅ | ❌ |
-| 本地代理管理 | ✅ | ❌ |
-| 网络切换 | ✅ | ❌ |
-| 延迟测试 | ✅ | ❌ |
-| 自动更新 | ✅ | ✅ |
-| 国际化 | ✅ (4种语言) | ✅ |
+| 功能模块 | 状态 | 说明 |
+|---------|------|------|
+| 多配置管理 | ✅ | 快速创建和切换多个 Claude Code 配置 |
+| MCP 服务器 | ✅ | 管理 Model Context Protocol 服务器配置 |
+| 使用统计 | ✅ | 可视化展示 Token 使用和项目活动 |
+| 智能体管理 | ✅ | 配置和管理 Claude Code 智能体 |
+| Codex 知识库 | ✅ | 管理 AI 知识库连接和配置 |
+| 本地代理管理 | ✅ | 网络节点切换和延迟测试 |
+| 网络诊断 | ✅ | 公网 IP 查询和连接测试 |
+| 自动更新 | ✅ | 自动检测和安装新版本 |
+| 国际化 | ✅ | 支持 4 种语言（中文、英语、法语、日语） |
+| CLI 工具安装 | ✅ | 一键安装 Claude CLI 和 Codex CLI |
 
 ---
 
@@ -427,7 +427,7 @@ C:\ProgramData\ClaudeCode\
 ## 📈 项目状态
 
 - 🟢 **活跃开发中** - 定期更新和维护
-- 📦 **最新版本**: v0.3.9
+- 📦 **最新版本**: v1.0.1
 - 🐛 **已知问题**: [Issues](https://github.com/liuaibin001/tvcbuddy/issues)
 - 📝 **更新日志**: [Releases](https://github.com/liuaibin001/tvcbuddy/releases)
 
