@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface NetworkInfo {
     interface_alias: string;
@@ -31,6 +32,7 @@ const TEST_SITES = [
 type Tab = "dashboard" | "network" | "settings";
 
 export function ProxyPage() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<Tab>("dashboard");
     const [currentNode, setCurrentNode] = useState<string>("");
@@ -52,7 +54,7 @@ export function ProxyPage() {
             const admin = await invoke<boolean>("check_is_admin");
             setIsAdmin(admin);
             if (!admin) {
-                toast.warning("Running without Administrator privileges. Network switching will be disabled.");
+                toast.warning(t("proxy.network.adminRequired"));
             }
         } catch (error) {
             console.error("Failed to check admin status:", error);
@@ -133,13 +135,13 @@ export function ProxyPage() {
 
         if (!isAdmin) {
             console.error("Admin privileges required");
-            toast.error("Administrator privileges required to switch nodes.");
+            toast.error(t("proxy.network.adminRequired"));
             return;
         }
 
         if (!networkInfo) {
             console.error("Network info is null. Cannot switch node.");
-            toast.error("Network info not available. Check console for details.");
+            toast.error(t("proxy.network.noInfo"));
             return;
         }
 
@@ -151,7 +153,7 @@ export function ProxyPage() {
 
         console.log("Target node:", node);
 
-        const toastId = toast.loading(`Switching to ${node.name}...`);
+        const toastId = toast.loading(t("proxy.network.switching", { name: node.name }));
 
         const params = {
             interfaceAlias: networkInfo.interface_alias,
@@ -173,7 +175,7 @@ export function ProxyPage() {
             // Update network info with the returned data
             setNetworkInfo(updatedNetworkInfo);
 
-            toast.success(`Switched to ${node.name}`, { id: toastId });
+            toast.success(t("proxy.network.switched", { name: node.name }), { id: toastId });
             setCurrentNode(nodeId);
 
             // Re-run connectivity tests with a slight delay
@@ -182,7 +184,7 @@ export function ProxyPage() {
         } catch (error) {
             console.error("Failed to switch node:", error);
             console.error("Error details:", JSON.stringify(error));
-            toast.error(`Failed to switch node: ${error}`, { id: toastId });
+            toast.error(t("proxy.network.switchFailed", { error: String(error) }), { id: toastId });
         }
 
         console.log("========== Node Switch End ==========");
@@ -202,13 +204,13 @@ export function ProxyPage() {
                     <ArrowLeftIcon size={20} />
                 </Button>
                 <div className="flex flex-col">
-                    <h1 className="text-lg font-semibold leading-none">Local Proxy</h1>
-                    <span className="text-xs text-muted-foreground mt-1">Network Management & Diagnostics</span>
+                    <h1 className="text-lg font-semibold leading-none">{t("proxy.title")}</h1>
+                    <span className="text-xs text-muted-foreground mt-1">{t("proxy.subtitle")}</span>
                 </div>
                 {!isAdmin && (
                     <div className="ml-auto bg-yellow-500/10 text-yellow-600 px-3 py-1 rounded-full text-xs font-medium border border-yellow-500/20 flex items-center gap-2">
                         <ShieldCheckIcon size={12} />
-                        Admin Access Required for Switching
+                        {t("proxy.adminRequired")}
                     </div>
                 )}
             </header>
@@ -217,28 +219,28 @@ export function ProxyPage() {
                 {/* Left Sidebar: Navigation */}
                 <div className="lg:col-span-3 space-y-2">
                     <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 px-2">
-                        Menu
+                        {t("proxy.menu")}
                     </div>
                     <NavButton
                         active={activeTab === "dashboard"}
                         onClick={() => setActiveTab("dashboard")}
                         icon={<ActivityIcon size={18} />}
-                        label="Network Status"
-                        description="Real-time diagnostics"
+                        label={t("proxy.tab.dashboard")}
+                        description={t("proxy.tab.dashboardDesc")}
                     />
                     <NavButton
                         active={activeTab === "network"}
                         onClick={() => setActiveTab("network")}
                         icon={<NetworkIcon size={18} />}
-                        label="Node Switch"
-                        description="Gateway & DNS"
+                        label={t("proxy.tab.network")}
+                        description={t("proxy.tab.networkDesc")}
                     />
                     <NavButton
                         active={activeTab === "settings"}
                         onClick={() => setActiveTab("settings")}
                         icon={<Settings2Icon size={18} />}
-                        label="Settings"
-                        description="Configuration"
+                        label={t("proxy.tab.settings")}
+                        description={t("proxy.tab.settingsDesc")}
                     />
                 </div>
 
@@ -249,42 +251,42 @@ export function ProxyPage() {
                             {/* IP Info Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <InfoCard
-                                    title="Local Network"
-                                    value={networkInfo?.local_ip || "Loading..."}
-                                    subValue={networkInfo ? `Gateway: ${networkInfo.gateway}` : (isLoadingNetwork ? "Fetching..." : "Unknown")}
+                                    title={t("proxy.card.localNetwork")}
+                                    value={networkInfo?.local_ip || t("proxy.card.loading")}
+                                    subValue={networkInfo ? `${t("proxy.card.gateway")}: ${networkInfo.gateway}` : (isLoadingNetwork ? t("proxy.card.checking") : "Unknown")}
                                     icon={<WifiIcon className="text-blue-500" />}
                                     loading={isLoadingNetwork}
                                 />
                                 <InfoCard
-                                    title="Public Network"
+                                    title={t("proxy.card.publicNetwork")}
                                     value={publicIP}
-                                    subValue="ISP External IP"
+                                    subValue={t("proxy.card.ispExternalIp")}
                                     icon={<GlobeIcon className="text-green-500" />}
-                                    loading={publicIP === "Checking..."}
+                                    loading={publicIP === t("proxy.card.checking")}
                                 />
                                 <InfoCard
-                                    title="Foreign Access"
+                                    title={t("proxy.card.foreignAccess")}
                                     value={foreignIP}
-                                    subValue="Test via ifconfig.me"
+                                    subValue={t("proxy.card.testVia")}
                                     icon={<ShieldCheckIcon className="text-purple-500" />}
-                                    loading={foreignIP === "Checking..."}
+                                    loading={foreignIP === t("proxy.card.checking")}
                                 />
                                 <InfoCard
-                                    title="Google Connectivity"
+                                    title={t("proxy.card.googleConnectivity")}
                                     value={googleStatus}
-                                    subValue="Direct Connection Test"
+                                    subValue={t("proxy.card.directConnection")}
                                     icon={<SignalIcon className="text-yellow-500" />}
-                                    loading={googleStatus === "Checking..."}
+                                    loading={googleStatus === t("proxy.card.checking")}
                                 />
                             </div>
 
                             {/* Connectivity Test */}
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Connectivity Test</h3>
+                                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t("proxy.connectivity.title")}</h3>
                                     <Button variant="outline" size="sm" onClick={handleTestConnectivity} disabled={isTesting} className="gap-2">
                                         <RefreshCwIcon size={14} className={cn(isTesting && "animate-spin")} />
-                                        {isTesting ? "Testing..." : "Refresh Test"}
+                                        {isTesting ? t("proxy.connectivity.testing") : t("proxy.connectivity.refresh")}
                                     </Button>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -304,7 +306,7 @@ export function ProxyPage() {
                                                 <div className="flex items-center gap-2">
                                                     {hasData ? (
                                                         isError ? (
-                                                            <span className="text-xs text-destructive font-medium">Failed</span>
+                                                            <span className="text-xs text-destructive font-medium">{t("proxy.connectivity.failed")}</span>
                                                         ) : (
                                                             <>
                                                                 <span className={cn(
@@ -335,11 +337,11 @@ export function ProxyPage() {
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-lg font-semibold">Network Node Selection</h2>
-                                    <p className="text-sm text-muted-foreground">Select a node to switch your Gateway and DNS settings.</p>
+                                    <h2 className="text-lg font-semibold">{t("proxy.network.title")}</h2>
+                                    <p className="text-sm text-muted-foreground">{t("proxy.network.description")}</p>
                                     {networkInfo && (
                                         <p className="text-xs text-muted-foreground mt-1">
-                                            Current Interface: <span className="font-mono">{networkInfo.interface_alias}</span> ({networkInfo.local_ip})
+                                            {t("proxy.card.currentInterface")}: <span className="font-mono">{networkInfo.interface_alias}</span> ({networkInfo.local_ip})
                                         </p>
                                     )}
                                 </div>
@@ -349,7 +351,7 @@ export function ProxyPage() {
                                 <div className="p-4 rounded-lg border border-destructive/20 bg-destructive/10 text-destructive flex items-start gap-3">
                                     <AlertTriangleIcon size={20} className="shrink-0 mt-0.5" />
                                     <div className="flex-1">
-                                        <h3 className="font-semibold text-sm">Network Info Unavailable</h3>
+                                        <h3 className="font-semibold text-sm">{t("proxy.network.errorTitle")}</h3>
                                         <p className="text-xs opacity-90 mt-1">{networkError}</p>
                                         <Button
                                             variant="outline"
@@ -358,7 +360,7 @@ export function ProxyPage() {
                                             onClick={fetchNetworkInfo}
                                         >
                                             <RotateCcwIcon size={14} className="mr-2" />
-                                            Retry Fetching Info
+                                            {t("proxy.network.retryFetch")}
                                         </Button>
                                     </div>
                                 </div>
@@ -387,10 +389,10 @@ export function ProxyPage() {
                                                 <h3 className="font-semibold">{node.name}</h3>
                                                 <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                                                     <span className="flex items-center gap-1">
-                                                        Gateway: <span className="font-mono text-foreground">{node.gateway}</span>
+                                                        {t("proxy.network.gateway")}: <span className="font-mono text-foreground">{node.gateway}</span>
                                                     </span>
                                                     <span className="flex items-center gap-1">
-                                                        DNS: <span className="font-mono text-foreground">{node.dns}</span>
+                                                        {t("proxy.network.dns")}: <span className="font-mono text-foreground">{node.dns}</span>
                                                     </span>
                                                 </div>
                                             </div>
@@ -407,7 +409,7 @@ export function ProxyPage() {
                                                 }}
                                                 disabled={!isAdmin || !networkInfo}
                                             >
-                                                {currentNode === node.id ? "Active" : "Activate"}
+                                                {currentNode === node.id ? t("proxy.network.active") : t("proxy.network.activate")}
                                             </Button>
                                         </div>
                                     </div>
@@ -419,7 +421,7 @@ export function ProxyPage() {
                     {activeTab === "settings" && (
                         <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <Settings2Icon size={48} className="mb-4 opacity-20" />
-                            <p>Advanced settings coming soon...</p>
+                            <p>{t("proxy.settings.comingSoon")}</p>
                         </div>
                     )}
                 </div>

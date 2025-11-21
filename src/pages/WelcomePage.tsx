@@ -1,8 +1,10 @@
-import { BotIcon, GlobeIcon, PlusIcon, ServerIcon } from "lucide-react";
+import { GlobeIcon, PlusIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn, isMacOS } from "@/lib/utils";
 import { WindowControls } from "@/components/WindowControls";
+import ClaudeSvg from "@/assets/claude.svg?react";
+import OpenAISvg from "@/assets/openai.svg?react";
 
 export function WelcomePage() {
     const navigate = useNavigate();
@@ -12,7 +14,7 @@ export function WelcomePage() {
             id: "claude",
             title: "Claude",
             description: "AI Assistant Configuration",
-            icon: BotIcon,
+            icon: ClaudeSvg,
             path: "/claude",
             gradient: "from-purple-500/20 to-blue-500/20",
             border: "group-hover:border-purple-500/50",
@@ -22,7 +24,7 @@ export function WelcomePage() {
             id: "codex",
             title: "Codex",
             description: "Knowledge Base & Indexing",
-            icon: ServerIcon,
+            icon: OpenAISvg,
             path: "/codex",
             gradient: "from-blue-500/20 to-cyan-500/20",
             border: "group-hover:border-blue-500/50",
@@ -92,7 +94,7 @@ export function WelcomePage() {
 
                                 <div className="relative h-full flex flex-col justify-between z-10">
                                     <div className={cn("p-4 rounded-2xl bg-background/80 w-fit", card.iconColor)}>
-                                        <card.icon size={32} />
+                                        <card.icon className="w-8 h-8" />
                                     </div>
 
                                     <div className="space-y-2">
