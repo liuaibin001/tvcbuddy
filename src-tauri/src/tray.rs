@@ -243,7 +243,7 @@ pub fn handle_tray_menu_event<R: Runtime>(app_handle: &AppHandle<R>, event_id: &
                         let _ = app_clone
                             .notification()
                             .builder()
-                            .title("CC Mate")
+                            .title("TVC BUDDY")
                             .body(&notification_body)
                             .show();
                     }
@@ -254,7 +254,7 @@ pub fn handle_tray_menu_event<R: Runtime>(app_handle: &AppHandle<R>, event_id: &
                         let _ = app_clone
                             .notification()
                             .builder()
-                            .title("CC Mate")
+                            .title("TVC BUDDY")
                             .body(&format!("Error: {}", e))
                             .show();
                     }
