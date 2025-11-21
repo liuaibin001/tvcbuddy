@@ -135,7 +135,7 @@ jobs:
       - name: Send build success notification
         run: |
           curl \
-            -H "Title: CC Mate build finished" \
+            -H "Title: TVC BUDDY build finished" \
             -H "Tags: ccmate,github_action" \
-            -d "✅  CC Mate build has finished. Ready to release." \
-            https://ntfy.sh/randyloop
+            -d "✅  TVC BUDDY build has finished. Ready to release." \
+            https://1234.com
