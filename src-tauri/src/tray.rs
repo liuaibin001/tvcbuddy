@@ -32,7 +32,7 @@ pub fn create_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::er
     let tray_builder = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .menu(&menu)
-        .tooltip("CC Mate - Config Manager")
+        .tooltip("TVC BUDDY - Config Manager")
         .show_menu_on_left_click(true); // Show menu on left click
 
     // On macOS, make it a template icon for better system integration
