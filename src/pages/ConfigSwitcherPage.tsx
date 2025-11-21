@@ -1,7 +1,10 @@
 import { Kimi, Minimax, ZAI } from "@lobehub/icons";
-import { EllipsisVerticalIcon, PencilLineIcon, PlusIcon, ServerIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, DownloadIcon, EllipsisVerticalIcon, PencilLineIcon, PlusIcon, ServerIcon, Trash2Icon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 import { GLMDialog } from "@/components/GLMBanner";
 import { KimiDialog } from "@/components/KimiDialog";
 import { MiniMaxDialog } from "@/components/MiniMaxDialog";
@@ -47,6 +50,9 @@ function ConfigStores() {
 	const deleteConfigMutation = useDeleteConfig();
 	const navigate = useNavigate();
 
+	const [claudeInstalled, setClaudeInstalled] = useState<boolean | null>(null);
+	const [installing, setInstalling] = useState(false);
+
 	const isOriginalConfigActive = !stores.some((store) => store.using);
 
 	// Check if system env config already exists in saved configs
@@ -60,6 +66,34 @@ function ConfigStores() {
 
 	// When system default config exists and no custom config is active, show system config as active
 	const isSystemConfigActive = systemEnvConfig?.has_config && !systemConfigExists && isOriginalConfigActive;
+
+	useEffect(() => {
+		checkClaudeInstallation();
+	}, []);
+
+	const checkClaudeInstallation = async () => {
+		try {
+			const installed = await invoke<boolean>("check_command_exists", { command: "claude" });
+			setClaudeInstalled(installed);
+		} catch (error) {
+			console.error("Failed to check claude installation:", error);
+			setClaudeInstalled(false);
+		}
+	};
+
+	const installClaude = async () => {
+		setInstalling(true);
+		try {
+			await invoke("install_claude_cli");
+			toast.success("Claude CLI installed successfully");
+			await checkClaudeInstallation();
+		} catch (error) {
+			console.error("Failed to install claude:", error);
+			toast.error("Failed to install Claude CLI");
+		} finally {
+			setInstalling(false);
+		}
+	};
 
 	const handleStoreClick = (storeId: string, isCurrentStore: boolean) => {
 		if (!isCurrentStore) {
@@ -85,7 +119,7 @@ function ConfigStores() {
 	};
 
 	return (
-		<>
+		<div className="h-full flex flex-col">
 			<div
 				className="flex items-center px-6 py-4 border-b justify-between shrink-0 bg-background"
 				data-tauri-drag-region
@@ -98,40 +132,80 @@ function ConfigStores() {
 						{t("configSwitcher.description")}
 					</p>
 				</div>
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="outline" size="sm" className="h-8 gap-2 text-xs">
-							<EllipsisVerticalIcon size={14} />
-							AI Providers
+				<div className="flex items-center gap-3">
+					{/* Claude CLI Installation Status */}
+					{claudeInstalled === null ? (
+						<div className="flex items-center gap-2 text-xs text-muted-foreground">
+							<div className="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-primary" />
+							Checking...
+						</div>
+					) : claudeInstalled ? (
+						<div className="flex items-center gap-2 text-xs text-green-600">
+							<div className="relative">
+								<CheckIcon className="h-4 w-4" />
+								<span className="absolute inset-0 animate-ping">
+									<CheckIcon className="h-4 w-4 opacity-75" />
+								</span>
+							</div>
+							Claude CLI Installed
+						</div>
+					) : (
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-8 gap-2 text-xs"
+							onClick={installClaude}
+							disabled={installing}
+						>
+							{installing ? (
+								<>
+									<div className="h-3 w-3 animate-spin rounded-full border-2 border-muted border-t-primary" />
+									Installing...
+								</>
+							) : (
+								<>
+									<DownloadIcon size={14} />
+									Install Claude CLI
+								</>
+							)}
 						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						<GLMDialog
-							trigger={
-								<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-									<ZAI />
-									{t("glm.useZhipuGlm")}
-								</DropdownMenuItem>
-							}
-						/>
-						<MiniMaxDialog
-							trigger={
-								<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-									<Minimax />
-									{t("minimax.useMiniMax")}
-								</DropdownMenuItem>
-							}
-						/>
-						<KimiDialog
-							trigger={
-								<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-									<Kimi />
-									{t("kimi.useKimi")}
-								</DropdownMenuItem>
-							}
-						/>
-					</DropdownMenuContent>
-				</DropdownMenu>
+					)}
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="outline" size="sm" className="h-8 gap-2 text-xs">
+								<EllipsisVerticalIcon size={14} />
+								AI Providers
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<GLMDialog
+								trigger={
+									<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+										<ZAI />
+										{t("glm.useZhipuGlm")}
+									</DropdownMenuItem>
+								}
+							/>
+							<MiniMaxDialog
+								trigger={
+									<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+										<Minimax />
+										{t("minimax.useMiniMax")}
+									</DropdownMenuItem>
+								}
+							/>
+							<KimiDialog
+								trigger={
+									<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+										<Kimi />
+										{t("kimi.useKimi")}
+									</DropdownMenuItem>
+								}
+							/>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 			</div>
 
 			<div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
@@ -315,6 +389,6 @@ function ConfigStores() {
 					})}
 				</div>
 			</div>
-		</>
+		</div>
 	);
 }

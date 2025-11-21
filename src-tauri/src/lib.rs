@@ -220,7 +220,10 @@ pub fn run() {
             check_site_latency,
             get_public_ip,
             check_is_admin,
-            get_system_env_config
+            get_system_env_config,
+            check_command_exists,
+            install_codex_cli,
+            install_claude_cli
         ])
         .on_window_event(|_window, _event| {
             #[cfg(target_os = "macos")]

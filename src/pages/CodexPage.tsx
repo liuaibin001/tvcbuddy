@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useCodexGlobalSettings, useCodexStores, useDeleteCodexStore, useSetUsingCodexStore } from "@/lib/query";
-import { PencilLineIcon, PlusIcon, ServerIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, DownloadIcon, PencilLineIcon, PlusIcon, ServerIcon, Trash2Icon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
@@ -41,6 +41,8 @@ function CodexConfigList() {
 
     const [statuses, setStatuses] = useState<Record<string, ConnectionStatus>>({});
     const [checking, setChecking] = useState<Record<string, boolean>>({});
+    const [codexInstalled, setCodexInstalled] = useState<boolean | null>(null);
+    const [installing, setInstalling] = useState(false);
 
     useEffect(() => {
         if (stores) {
@@ -49,6 +51,20 @@ function CodexConfigList() {
             });
         }
     }, [stores]);
+
+    useEffect(() => {
+        checkCodexInstallation();
+    }, []);
+
+    const checkCodexInstallation = async () => {
+        try {
+            const installed = await invoke<boolean>("check_command_exists", { command: "codex" });
+            setCodexInstalled(installed);
+        } catch (error) {
+            console.error("Failed to check codex installation:", error);
+            setCodexInstalled(false);
+        }
+    };
 
     const checkStatus = async (id: string, config: any) => {
         if (checking[id]) return;
@@ -97,10 +113,25 @@ function CodexConfigList() {
         }
     };
 
+    const installCodex = async () => {
+        setInstalling(true);
+        try {
+            await invoke("install_codex_cli");
+            toast.success("Codex CLI installed successfully");
+            // Re-check installation status
+            await checkCodexInstallation();
+        } catch (error) {
+            console.error("Failed to install codex:", error);
+            toast.error("Failed to install Codex CLI");
+        } finally {
+            setInstalling(false);
+        }
+    };
+
     return (
         <>
             <div
-                className="flex items-center px-6 py-4 border-b shrink-0 bg-background"
+                className="flex items-center px-6 py-4 border-b shrink-0 bg-background justify-between"
                 data-tauri-drag-region
             >
                 <div data-tauri-drag-region>
@@ -110,6 +141,46 @@ function CodexConfigList() {
                     <p className="text-xs text-muted-foreground" data-tauri-drag-region>
                         Manage your AI provider connections.
                     </p>
+                </div>
+
+                {/* Codex CLI Installation Status */}
+                <div className="flex items-center">
+                    {codexInstalled === null ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                            Checking...
+                        </div>
+                    ) : codexInstalled ? (
+                        <div className="flex items-center gap-2 text-xs text-green-600">
+                            <div className="relative">
+                                <CheckIcon className="h-4 w-4" />
+                                <span className="absolute inset-0 animate-ping">
+                                    <CheckIcon className="h-4 w-4 opacity-75" />
+                                </span>
+                            </div>
+                            Codex CLI Installed
+                        </div>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-2 text-xs"
+                            onClick={installCodex}
+                            disabled={installing}
+                        >
+                            {installing ? (
+                                <>
+                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                                    Installing...
+                                </>
+                            ) : (
+                                <>
+                                    <DownloadIcon size={14} />
+                                    Install Codex CLI
+                                </>
+                            )}
+                        </Button>
+                    )}
                 </div>
             </div>
 

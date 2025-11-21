@@ -2368,7 +2368,7 @@ pub struct ConnectionStatus {
 #[tauri::command]
 pub async fn check_codex_connection(
     url: String,
-    api_key: Option<String>,
+    _api_key: Option<String>,
     _model: Option<String>,
 ) -> Result<ConnectionStatus, String> {
     let client = reqwest::Client::builder()
@@ -2378,47 +2378,31 @@ pub async fn check_codex_connection(
 
     let start = std::time::Instant::now();
 
-    // Try to hit the /models endpoint as a lightweight check
-    // Adjust the URL to ensure it ends with /models if it's a base URL
-    // Common OpenAI compatible endpoints: {base_url}/models
-    let check_url = if url.ends_with("/v1") {
-        format!("{}/models", url)
-    } else if url.ends_with("/v1/") {
-        format!("{}models", url)
-    } else {
-        // Heuristic: if it doesn't have v1, try appending v1/models, or just models if user provided full path
-        // For now, let's assume user provided base URL like https://api.example.com/v1
-        if url.ends_with('/') {
-            format!("{}models", url)
-        } else {
-            format!("{}/models", url)
-        }
-    };
+    // Extract the base domain from the URL for a simple connectivity check
+    // Parse the URL to get just the scheme + host (e.g., https://api.openai.com)
+    let parsed_url = reqwest::Url::parse(&url)
+        .or_else(|_| reqwest::Url::parse(&format!("https://{}", url)))
+        .map_err(|e| format!("Invalid URL: {}", e))?;
 
-    let mut request = client.get(&check_url);
+    let base_url = format!("{}://{}", parsed_url.scheme(), parsed_url.host_str().unwrap_or(""));
 
-    if let Some(key) = api_key {
-        if !key.is_empty() {
-            request = request.header("Authorization", format!("Bearer {}", key));
-        }
-    }
-
-    match request.send().await {
+    // Use HEAD request for a lightweight connectivity check
+    match client.head(&base_url).send().await {
         Ok(response) => {
             let latency = start.elapsed().as_millis() as u64;
-            if response.status().is_success() {
-                Ok(ConnectionStatus {
-                    success: true,
-                    latency_ms: latency,
-                    message: None,
-                })
-            } else {
-                Ok(ConnectionStatus {
-                    success: false,
-                    latency_ms: latency,
-                    message: Some(format!("HTTP {}", response.status())),
-                })
-            }
+            // Consider 2xx, 3xx, 4xx as "online" - we just want to know if the domain is reachable
+            // 401/403 still means the server is online, just requires auth
+            let is_reachable = response.status().as_u16() < 500;
+
+            Ok(ConnectionStatus {
+                success: is_reachable,
+                latency_ms: latency,
+                message: if is_reachable {
+                    None
+                } else {
+                    Some(format!("HTTP {}", response.status()))
+                },
+            })
         }
         Err(e) => Ok(ConnectionStatus {
             success: false,
@@ -2793,5 +2777,106 @@ pub fn get_system_env_config() -> SystemEnvConfig {
         haiku_model: std::env::var("ANTHROPIC_DEFAULT_HAIKU_MODEL").ok(),
         sonnet_model: std::env::var("ANTHROPIC_DEFAULT_SONNET_MODEL").ok(),
         opus_model: std::env::var("ANTHROPIC_DEFAULT_OPUS_MODEL").ok(),
+    }
+}
+
+#[tauri::command]
+pub async fn check_command_exists(command: String) -> Result<bool, String> {
+    use std::process::Command;
+
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, use "where" command to check if command exists
+        let output = Command::new("where")
+            .arg(&command)
+            .output()
+            .map_err(|e| format!("Failed to execute where command: {}", e))?;
+
+        Ok(output.status.success())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // On Unix-like systems, use "which" command
+        let output = Command::new("which")
+            .arg(&command)
+            .output()
+            .map_err(|e| format!("Failed to execute which command: {}", e))?;
+
+        Ok(output.status.success())
+    }
+}
+
+#[tauri::command]
+pub async fn install_codex_cli() -> Result<(), String> {
+    use std::process::Command;
+
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, use cmd.exe to execute npm command
+        let output = Command::new("cmd")
+            .args(&["/C", "npm", "i", "-g", "@openai/codex"])
+            .output()
+            .map_err(|e| format!("Failed to execute npm install: {}", e))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("npm install failed: {}", stderr))
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // On Unix-like systems, execute npm directly
+        let output = Command::new("npm")
+            .args(&["i", "-g", "@openai/codex"])
+            .output()
+            .map_err(|e| format!("Failed to execute npm install: {}", e))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("npm install failed: {}", stderr))
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn install_claude_cli() -> Result<(), String> {
+    use std::process::Command;
+
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, use cmd.exe to execute npm command
+        let output = Command::new("cmd")
+            .args(&["/C", "npm", "install", "-g", "@anthropic-ai/claude-code"])
+            .output()
+            .map_err(|e| format!("Failed to execute npm install: {}", e))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("npm install failed: {}", stderr))
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // On Unix-like systems, execute npm directly
+        let output = Command::new("npm")
+            .args(&["install", "-g", "@anthropic-ai/claude-code"])
+            .output()
+            .map_err(|e| format!("Failed to execute npm install: {}", e))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("npm install failed: {}", stderr))
+        }
     }
 }
